@@ -422,6 +422,57 @@ def choose_law(path: Path, timeout: int = 20) -> dict | None:
     }
 
 
+def violation_fact(events: list[dict]) -> str | None:
+    """Le fait observé, pas la loi. Après un résultat, le pas n'est pas une fin."""
+    body = [event for event in events if event['type'] != 'session_start']
+    for index, event in enumerate(body):
+        if index and body[index - 1]['type'] == 'tool_result' and event['type'] != 'session_end':
+            return "o3[t] & o5[t]' != 0."
+    return None
+
+
+def bind_reason(rule: str, ban: int) -> str:
+    """Le booléen vient de la clause imprimée. `sometimes` ne passe pas dans `solve`."""
+    clause = installable(rule).replace('sometimes ', '').strip().rstrip('.')
+    return clause.replace('o5[t]', f'd{ban}').replace('o3[t]', f's{ban - 1}')
+
+
+def apply_written_reason(path: Path, timeout: int = 20) -> dict | None:
+    events = load_events(path)
+    fact = violation_fact(events)
+    ban = second_decision(events)
+    body = [event for event in events if event['type'] != 'session_start']
+    if fact is None or ban is None or ban + 1 >= len(body):
+        return None
+    written = write_rule(path, fact=fact, timeout=timeout)
+    if written is None or 'sometimes' not in written['rule']:
+        return None
+    if written['rule'] in written['script'] or 'sometimes' in written['script']:
+        return None
+    clause = bind_reason(written['rule'], ban)
+    if f'd{ban}' not in clause or f's{ban - 1}' not in clause:
+        return None
+    next_type = body[ban + 1]['type']
+    equation = keep_equation(events, ban, next_type) + ' && ' + clause
+    free = solve_assignments(equation, timeout)
+    if free is None or free.get('m') not in (0, 1):
+        return None
+    chosen = [bit for bit in 'acsd' if free.get(f'{bit}{ban}') == 1]
+    if len(chosen) != 1:
+        raise RuntimeError(f'written reason is not one event: {chosen}')
+    return {
+        'point': ban,
+        'fact': fact,
+        'rule': written['rule'],
+        'clause': clause,
+        'recorded_next': next_type,
+        'free': 'keep' if free.get('m') == 1 else 'discard',
+        'free_event': EVENT[chosen[0]],
+        'keep_possible': solve_assignments(equation + ' && m = 1', timeout) is not None,
+        'discard_possible': solve_assignments(equation + ' && m = 0', timeout) is not None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
@@ -434,6 +485,7 @@ def main() -> int:
     parser.add_argument('--keep-output', type=Path, default=Path('docs/keep_decision.json'))
     parser.add_argument('--reason-output', type=Path, default=Path('docs/reasoned_keep.json'))
     parser.add_argument('--law-output', type=Path, default=Path('docs/chosen_law.json'))
+    parser.add_argument('--written-reason-output', type=Path, default=Path('docs/written_reason.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -477,6 +529,15 @@ def main() -> int:
         raise SystemExit('law not chosen')
     if chosen_law['single_call'] is not None:
         raise SystemExit('invented a law')
+    written_reason = {
+        'local_session': apply_written_reason(Path('docs/trajectories/local_session.jsonl')),
+        'two_calls': apply_written_reason(Path('docs/trajectories/local_two_calls.jsonl')),
+        'single_call': apply_written_reason(Path('docs/trajectories/single_call.jsonl')),
+    }
+    if written_reason['local_session'] is None or written_reason['two_calls'] is None:
+        raise SystemExit('reason not written')
+    if written_reason['single_call'] is not None:
+        raise SystemExit('invented a written reason')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
     args.reinstall_output.write_text(json.dumps({
@@ -491,7 +552,8 @@ def main() -> int:
     args.keep_output.write_text(json.dumps(decided, ensure_ascii=False, indent=2) + '\n')
     args.reason_output.write_text(json.dumps(reasoned, ensure_ascii=False, indent=2) + '\n')
     args.law_output.write_text(json.dumps(chosen_law, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({'law': chosen_law, 'output': str(args.law_output)}))
+    args.written_reason_output.write_text(json.dumps(written_reason, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'written_reason': written_reason, 'output': str(args.written_reason_output)}))
     return 0
 
 

@@ -221,6 +221,11 @@ rappelait en a deux : ce passage prend « pas de second appel » et écarte.
 L'autre loi reste légale. Sans seconde décision, ou si aucune loi ne mord,
 rien n'est inventé.
 
+Tau écrit la loi qui sert de raison. La source énonce le fait observé,
+`o3[t] & o5[t]' != 0`, pas la loi. Le dual `sometimes o5[t]' o3[t] = 0`
+n'y est pas. Lié au pas, la session qui finissait garde. Celle qui
+rappelait écarte, et Tau met une fin. Sans cette violation, rien n'est écrit.
+
 ```bash
 python3 scripts/write_rule.py
 ```

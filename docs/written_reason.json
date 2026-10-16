@@ -1,0 +1,25 @@
+{
+  "local_session": {
+    "point": 3,
+    "fact": "o3[t] & o5[t]' != 0.",
+    "rule": "sometimes o5[t]:tau' o3[t]:tau = 0",
+    "clause": "d3' s2 = 0",
+    "recorded_next": "session_end",
+    "free": "keep",
+    "free_event": "session_end",
+    "keep_possible": true,
+    "discard_possible": false
+  },
+  "two_calls": {
+    "point": 3,
+    "fact": "o3[t] & o5[t]' != 0.",
+    "rule": "sometimes o5[t]:tau' o3[t]:tau = 0",
+    "clause": "d3' s2 = 0",
+    "recorded_next": "tool_call",
+    "free": "discard",
+    "free_event": "session_end",
+    "keep_possible": false,
+    "discard_possible": true
+  },
+  "single_call": null
+}

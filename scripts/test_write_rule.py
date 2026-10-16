@@ -137,6 +137,22 @@ class WriteRuleExecutionTests(unittest.TestCase):
             {'type': 'session_end'},
         ]
         self.assertIsNone(solve_assignments(law_equation(neither, 1, 'session_end')))
+        from write_rule import apply_written_reason, violation_fact, complement_script
+        self.assertIsNone(violation_fact(neither))
+        self.assertIsNone(apply_written_reason(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
+        written = apply_written_reason(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        source = complement_script(written['fact'])
+        self.assertNotIn('sometimes', source)
+        self.assertNotIn(written['rule'], source)
+        self.assertIn('sometimes', written['rule'])
+        self.assertEqual(written['free'], 'keep')
+        self.assertEqual(written['free_event'], 'session_end')
+        self.assertFalse(written['discard_possible'])
+        two = apply_written_reason(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
+        self.assertEqual(two['rule'], written['rule'])
+        self.assertEqual(two['free'], 'discard')
+        self.assertEqual(two['free_event'], 'session_end')
+        self.assertFalse(two['keep_possible'])
 
 
 if __name__ == '__main__':
