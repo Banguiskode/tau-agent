@@ -73,15 +73,27 @@ def probe_pair(links: list[str]) -> tuple[str, str, str]:
     return link, antecedent, f'{stream}[{step}] = 0'
 
 
+def negation_target(kernel: list[str], links: list[str]) -> str:
+    result_facts = [fact for fact in kernel if fact.startswith('tool_result[') and fact.endswith(' = 1')]
+    if result_facts:
+        return result_facts[0].replace(' = 1', ' = 0')
+    _, _, consequent_neg = probe_pair(links)
+    positive = consequent_neg.replace(' = 0', ' = 1')
+    if positive in kernel:
+        return consequent_neg
+    done_facts = [fact for fact in kernel if fact.startswith('done[') and fact.endswith(' = 1')]
+    if done_facts:
+        return done_facts[0].replace(' = 1', ' = 0')
+    raise ValueError('no fact to negate')
+
+
 def emit_cases(events: list[dict]) -> dict:
     if not events:
         raise ValueError('empty trace')
-    kernel = pins() + closed_world(events) + policy_links(events)
-    result_facts = [fact for fact in kernel if fact.startswith('tool_result[') and fact.endswith(' = 1')]
-    if not result_facts:
-        raise ValueError('no tool_result fact to negate')
-    negation = result_facts[0].replace(' = 1', ' = 0')
-    link, antecedent, consequent_neg = probe_pair(policy_links(events))
+    links = policy_links(events)
+    kernel = pins() + closed_world(events) + links
+    negation = negation_target(kernel, links)
+    link, antecedent, consequent_neg = probe_pair(links)
     probe = pins() + [antecedent, link]
     return {
         'kernel': {'expected': 'SAT', 'conjuncts': kernel},

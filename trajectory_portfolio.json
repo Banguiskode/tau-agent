@@ -1,0 +1,92 @@
+{
+  "traces": 7,
+  "shapes": 7,
+  "legal": 4,
+  "illegal": 3,
+  "matched": 7,
+  "kernels": [
+    "SAT",
+    "UNSAT"
+  ],
+  "status": "PASS",
+  "rows": [
+    {
+      "name": "single_call",
+      "shape": "satts",
+      "events": 5,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "SAT",
+      "kernel_obtained": "SAT",
+      "gate": "PASS",
+      "wall_s": 0.666
+    },
+    {
+      "name": "two_calls_reversed",
+      "shape": "satttts",
+      "events": 7,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "SAT",
+      "kernel_obtained": "SAT",
+      "gate": "PASS",
+      "wall_s": 0.944
+    },
+    {
+      "name": "decision_only",
+      "shape": "sas",
+      "events": 3,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "SAT",
+      "kernel_obtained": "SAT",
+      "gate": "PASS",
+      "wall_s": 0.465
+    },
+    {
+      "name": "hermes_canonical",
+      "shape": "sattas",
+      "events": 6,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "SAT",
+      "kernel_obtained": "SAT",
+      "gate": "PASS",
+      "wall_s": 0.763
+    },
+    {
+      "name": "call_without_decision",
+      "shape": "stts",
+      "events": 4,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "UNSAT",
+      "kernel_obtained": "UNSAT",
+      "gate": "FAIL",
+      "wall_s": 0.515
+    },
+    {
+      "name": "decision_after_call",
+      "shape": "stats",
+      "events": 5,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "UNSAT",
+      "kernel_obtained": "UNSAT",
+      "gate": "FAIL",
+      "wall_s": 0.604
+    },
+    {
+      "name": "end_without_decision",
+      "shape": "ss",
+      "events": 2,
+      "harness_expected": "PASS",
+      "harness_obtained": "PASS",
+      "kernel_expected": "UNSAT",
+      "kernel_obtained": "UNSAT",
+      "gate": "FAIL",
+      "wall_s": 0.327
+    }
+  ],
+  "command": "tau -X -q -c false < spec.tau"
+}

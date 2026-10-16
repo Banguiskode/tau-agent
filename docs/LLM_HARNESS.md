@@ -50,7 +50,9 @@ python3 scripts/llm_replay.py normalized.jsonl fixtures.json
    puis négation du conséquent `UNSAT`, contrôle libre `SAT` ;
 2. mutations d'agent : outil interdit, appel orphelin, arrêt prématuré,
    résultat ignoré ;
-3. comparaison des verdicts par agent, chacun sur sa propre spec.
+3. comparaison des verdicts par agent, chacun sur sa propre spec ;
+4. lot de trajectoires de formes différentes, dont des chemins que le harness
+   accepte et que Tau refuse.
 
 La CI ne lance pas Tau. Un test d'exécution est ignoré si le binaire est absent.
 

@@ -93,6 +93,19 @@ python3 scripts/run_tau_gate.py --trace docs/hermes_trace_canonical.jsonl
 `scripts/mission_gate.py` et `scripts/compare_agents.py` passent chacun par ce
 chemin. Deux agents ne partagent plus le même verdict Tau.
 
+## Lot de trajectoires
+
+Sept chemins, sept formes. Le harness Python les accepte tous. Tau en accepte
+4 et en refuse 3 : appel sans décision antérieure, décision placée après
+l'appel, fin sans décision.
+
+```bash
+python3 scripts/trajectory_portfolio.py
+```
+
+Le rapport est `trajectory_portfolio.json`. Un lot sans forme distincte, ou
+sans cas `UNSAT`, n'est pas une preuve.
+
 ## Porte Tau de transition, exemple manuel
 
 Le noyau `tau/agent_transition.tau` reste l'exemple écrit à la main de la même
@@ -114,7 +127,9 @@ elle n'exécute pas Tau, le binaire n'y est pas installé.
 - mutations : outil interdit, résultat orphelin, arrêt prématuré, résultat ignoré ;
 - propriétés Tau émises depuis chaque trace, exécutées localement (`SAT` /
   `UNSAT` / contrôle libre) ;
-- comparaison multi-agents sur la spec de chacun, pas sur un noyau partagé.
+- comparaison multi-agents sur la spec de chacun, pas sur un noyau partagé ;
+- lot de 7 trajectoires distinctes : le harness les accepte toutes, Tau en
+  refuse 3.
 
 Le projet conserve volontairement une séparation stricte entre le runtime de
 l'agent, l'adaptation de sa trace et la vérification indépendante.

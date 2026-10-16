@@ -1,0 +1,12 @@
+{
+  "allow_tools": ["tau_real_portfolio_gate"],
+  "traces": [
+    {"name": "single_call", "path": "docs/trajectories/single_call.jsonl", "harness": "PASS", "kernel": "SAT"},
+    {"name": "two_calls_reversed", "path": "docs/trajectories/two_calls_reversed.jsonl", "harness": "PASS", "kernel": "SAT"},
+    {"name": "decision_only", "path": "docs/trajectories/decision_only.jsonl", "harness": "PASS", "kernel": "SAT"},
+    {"name": "hermes_canonical", "path": "docs/hermes_trace_canonical.jsonl", "harness": "PASS", "kernel": "SAT"},
+    {"name": "call_without_decision", "path": "docs/trajectories/call_without_decision.jsonl", "harness": "PASS", "kernel": "UNSAT"},
+    {"name": "decision_after_call", "path": "docs/trajectories/decision_after_call.jsonl", "harness": "PASS", "kernel": "UNSAT"},
+    {"name": "end_without_decision", "path": "docs/trajectories/end_without_decision.jsonl", "harness": "PASS", "kernel": "UNSAT"}
+  ]
+}
