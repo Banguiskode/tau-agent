@@ -1,0 +1,4 @@
+{
+  "fact": "o2[t] = 1.",
+  "rule": "sometimes o2[t]:tau' != 0"
+}

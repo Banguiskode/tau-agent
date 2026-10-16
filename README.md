@@ -175,6 +175,15 @@ règle tient, au pas 3. Sur un trajet sans seconde décision ni second appel,
 python3 scripts/revise_session.py --rule
 ```
 
+Tau écrit une règle qui n'est pas dans la source. Le fait observé, une
+seconde décision, est `o2[t] = 1`. Le flux Tau n'accepte ici que des noms
+`i`, `o`, `this` ou `u`. Tau rend le dual : `sometimes o2[t]' != 0`.
+La source ne contient pas `sometimes`. Un nom illégal n'écrit rien.
+
+```bash
+python3 scripts/write_rule.py
+```
+
 ```bash
 python3 scripts/revise_session.py
 ```
