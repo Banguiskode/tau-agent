@@ -1,0 +1,65 @@
+{
+  "steps": [
+    {
+      "step": 0,
+      "accepted": true,
+      "u": "always a[t]:sbf c[t]:sbf = 0 && s[t]:sbf' a[t]:sbf'd[t]:sbf'c[t]:sbf' = 0 && d[t]:sbf c[t]:sbf = 0 && s[t]:sbf c[t]:sbf = 0 && s[t]:sbf d[t]:sbf = 0 && a[t]:sbf d[t]:sbf = 0 && s[t]:sbf a[t]:sbf = 0",
+      "bits": {},
+      "one_hot": false,
+      "updated": "always u[2]:tau = i1[2]:tau && u[1]:tau = i1[1]:tau && spec[t]:tau = this[t]:tau && a[t]:sbf c[t]:sbf = 0 && s[t]:sbf' a[t]:sbf'd[t]:sbf'c[t]:sbf' = 0 && d[t]:sbf c[t]:sbf = 0 && s[t]:sbf c[t]:sbf = 0 && s[t]:sbf d[t]:sbf = 0 && a[t]:sbf d[t]:sbf = 0 && s[t]:sbf a[t]:sbf = 0"
+    },
+    {
+      "step": 1,
+      "accepted": false,
+      "u": "F",
+      "bits": {
+        "a": 0,
+        "c": 0,
+        "d": 0,
+        "s": 1
+      },
+      "one_hot": true,
+      "updated": ""
+    },
+    {
+      "step": 2,
+      "accepted": true,
+      "u": "always a[t]:sbf' = 0",
+      "bits": {
+        "a": 0,
+        "c": 0,
+        "d": 0,
+        "s": 1
+      },
+      "one_hot": true,
+      "updated": "always spec[t]:tau = this[t]:tau && a[t]:sbf c[t]:sbf = 0 && s[t]:sbf' a[t]:sbf'd[t]:sbf'c[t]:sbf' = 0 && d[t]:sbf c[t]:sbf = 0 && s[t]:sbf c[t]:sbf = 0 && s[t]:sbf d[t]:sbf = 0 && s[t]:sbf = 0 && a[t]:sbf d[t]:sbf = 0 && a[t]:sbf' = 0"
+    },
+    {
+      "step": 3,
+      "accepted": false,
+      "u": "",
+      "bits": {
+        "a": 1,
+        "c": 0,
+        "d": 0,
+        "s": 0
+      },
+      "one_hot": true,
+      "updated": ""
+    },
+    {
+      "step": 4,
+      "accepted": false,
+      "u": "",
+      "bits": {
+        "a": 1,
+        "c": 0,
+        "d": 0,
+        "s": 0
+      },
+      "one_hot": true,
+      "updated": ""
+    }
+  ],
+  "proposals": 3
+}

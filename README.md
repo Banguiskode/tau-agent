@@ -111,6 +111,23 @@ python3 scripts/synthesize_step.py --window
 Témoin mesuré : décision, appel, résultat, fin. Une mission, un appel.
 Les positions ne sont pas écrites par Python.
 
+## Révision par point
+
+La spec qui tourne accepte un changement sans être réécrite en Python.
+`scripts/revise_point.py` envoie les propositions au flux `u`. Tau fusionne
+une proposition satisfiable et refuse une proposition contradictoire
+(`u := F`, la règle n'est pas appliquée). Le pas de la mise à jour peut
+encore montrer l'ancienne loi. Le pas d'après obéit à la loi nouvelle.
+L'exclusion complète reste dans la spec fusionnée.
+
+```bash
+python3 scripts/revise_point.py
+```
+
+Mesuré : la contradiction `c[t] = 0 && c[t] = 1` est refusée, le pas reste
+un seul événement. `a[t] = 1` est fusionné. Les deux pas suivants sont la
+décision seule, les trois autres bits à 0.
+
 ## Lot de trajectoires
 
 Sept chemins, sept formes. Le harness Python les accepte tous. Tau en accepte
