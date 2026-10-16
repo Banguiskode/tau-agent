@@ -226,6 +226,12 @@ Tau écrit la loi qui sert de raison. La source énonce le fait observé,
 n'y est pas. Lié au pas, la session qui finissait garde. Celle qui
 rappelait écarte, et Tau met une fin. Sans cette violation, rien n'est écrit.
 
+Tau nomme la violation. `v0 = 1`, `v1 = 1` et `p3 = 1` ne sont pas des
+clauses. Le fait envoyé est celui qu'il a nommé. La session qui finissait
+n'a qu'une violation, au pas 3, et il l'écarte. La session qui rappelait
+en a deux : ce passage nomme le second appel, au pas 4, et il l'écarte.
+L'autre reste légale. Sans violation, aucun fait n'est envoyé.
+
 ```bash
 python3 scripts/write_rule.py
 ```

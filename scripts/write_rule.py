@@ -473,6 +473,118 @@ def apply_written_reason(path: Path, timeout: int = 20) -> dict | None:
     }
 
 
+VIOLATIONS = {
+    'v0': ('result_then_not_end', "o3[t] & o5[t]' != 0."),
+    'v1': ('second_call', 'o4[t] = 1.'),
+}
+
+
+def violation_equation(events: list[dict]) -> str:
+    """Tau nomme la violation. `v0 = 1`, `v1 = 1` et `p3 = 1` ne sont pas des clauses."""
+    kind = {'assistant': 'a', 'tool_call': 'c', 'tool_result': 's', 'session_end': 'd'}
+    body = [event for event in events if event['type'] != 'session_start']
+    parts = ['v0 & v1 = 0', 'v0 | v1 = 1']
+    for time, event in enumerate(body):
+        chosen = kind[event['type']]
+        for bit in 'acsd':
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+        if time == 0:
+            parts.append(f'v0 & p{time} = 0')
+            parts.append(f'v1 & p{time} = 0')
+        else:
+            parts.append(f"v0 & p{time} & s{time - 1}' = 0")
+            parts.append(f'v0 & p{time} & d{time} = 0')
+            earlier = ' & '.join(f"c{index}'" for index in range(time))
+            parts.append(f'v1 & p{time} & {earlier} = 0')
+        parts.append(f"v1 & p{time} & c{time}' = 0")
+    parts.append(' | '.join(f'p{time}' for time in range(len(body))) + ' = 1')
+    for left in range(len(body)):
+        for right in range(left + 1, len(body)):
+            parts.append(f'p{left} & p{right} = 0')
+    return ' && '.join(parts)
+
+
+def bind_named(rule: str, point: int) -> str:
+    clause = installable(rule).replace('sometimes ', '').strip().rstrip('.')
+    return (
+        clause.replace('o5[t]', f'd{point}')
+        .replace('o3[t]', f's{point - 1}')
+        .replace('o4[t]', f'c{point}')
+    )
+
+
+def named_apply_equation(events: list[dict], point: int, clause: str) -> str:
+    kind = {'assistant': 'a', 'tool_call': 'c', 'tool_result': 's', 'session_end': 'd'}
+    body = [event for event in events if event['type'] != 'session_start']
+    parts: list[str] = []
+    for time in range(point + 1):
+        names = [f'{bit}{time}' for bit in 'acsd']
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+    for time, event in enumerate(body[:point]):
+        chosen = kind[event['type']]
+        for bit in 'acsd':
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+    bit = kind[body[point]['type']]
+    parts.append(f"m & {bit}{point}' = 0")
+    parts.append(f"m' & {bit}{point} = 0")
+    parts.append(clause)
+    return ' && '.join(parts)
+
+
+def name_violation(path: Path, timeout: int = 20) -> dict | None:
+    events = load_events(path)
+    body = [event for event in events if event['type'] != 'session_start']
+    equation = violation_equation(events)
+    witness = solve_assignments(equation, timeout)
+    if witness is None:
+        return None
+    kinds = [name for name in VIOLATIONS if witness.get(name) == 1]
+    points = [time for time in range(len(body)) if witness.get(f'p{time}') == 1]
+    if len(kinds) != 1 or len(points) != 1:
+        raise RuntimeError(f'violation is not one pair: {kinds} {points}')
+    kind = kinds[0]
+    point = points[0]
+    fact = VIOLATIONS[kind][1]
+    written = write_rule(path, fact=fact, timeout=timeout)
+    if written is None or 'sometimes' not in written['rule']:
+        return None
+    if written['rule'] in written['script'] or 'sometimes' in written['script']:
+        return None
+    clause = bind_named(written['rule'], point)
+    apply_eq = named_apply_equation(events, point, clause)
+    free = solve_assignments(apply_eq, timeout)
+    if free is None or free.get('m') not in (0, 1):
+        return None
+    chosen = [bit for bit in 'acsd' if free.get(f'{bit}{point}') == 1]
+    if len(chosen) != 1:
+        raise RuntimeError(f'named revision is not one event: {chosen}')
+    legal = []
+    for name in VIOLATIONS:
+        probe = solve_assignments(equation + f' && {name} = 1', timeout)
+        if probe is None:
+            continue
+        probe_points = [time for time in range(len(body)) if probe.get(f'p{time}') == 1]
+        if len(probe_points) != 1:
+            raise RuntimeError(f'legal violation is not one point: {probe_points}')
+        legal.append({'kind': VIOLATIONS[name][0], 'point': probe_points[0]})
+    return {
+        'kind': VIOLATIONS[kind][0],
+        'point': point,
+        'recorded': body[point]['type'],
+        'legal': legal,
+        'fact': fact,
+        'rule': written['rule'],
+        'clause': clause,
+        'free': 'keep' if free.get('m') == 1 else 'discard',
+        'free_event': EVENT[chosen[0]],
+        'keep_possible': solve_assignments(apply_eq + ' && m = 1', timeout) is not None,
+        'discard_possible': solve_assignments(apply_eq + ' && m = 0', timeout) is not None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
@@ -486,6 +598,7 @@ def main() -> int:
     parser.add_argument('--reason-output', type=Path, default=Path('docs/reasoned_keep.json'))
     parser.add_argument('--law-output', type=Path, default=Path('docs/chosen_law.json'))
     parser.add_argument('--written-reason-output', type=Path, default=Path('docs/written_reason.json'))
+    parser.add_argument('--named-output', type=Path, default=Path('docs/named_violation.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -538,6 +651,15 @@ def main() -> int:
         raise SystemExit('reason not written')
     if written_reason['single_call'] is not None:
         raise SystemExit('invented a written reason')
+    named = {
+        'local_session': name_violation(Path('docs/trajectories/local_session.jsonl')),
+        'two_calls': name_violation(Path('docs/trajectories/local_two_calls.jsonl')),
+        'single_call': name_violation(Path('docs/trajectories/single_call.jsonl')),
+    }
+    if named['local_session'] is None or named['two_calls'] is None:
+        raise SystemExit('violation not named')
+    if named['single_call'] is not None:
+        raise SystemExit('invented a violation')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
     args.reinstall_output.write_text(json.dumps({
@@ -553,7 +675,8 @@ def main() -> int:
     args.reason_output.write_text(json.dumps(reasoned, ensure_ascii=False, indent=2) + '\n')
     args.law_output.write_text(json.dumps(chosen_law, ensure_ascii=False, indent=2) + '\n')
     args.written_reason_output.write_text(json.dumps(written_reason, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({'written_reason': written_reason, 'output': str(args.written_reason_output)}))
+    args.named_output.write_text(json.dumps(named, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'named': named, 'output': str(args.named_output)}))
     return 0
 
 

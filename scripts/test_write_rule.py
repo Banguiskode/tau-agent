@@ -153,6 +153,31 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(two['free'], 'discard')
         self.assertEqual(two['free_event'], 'session_end')
         self.assertFalse(two['keep_possible'])
+        from write_rule import name_violation, violation_equation
+        equation = violation_equation(events)
+        clauses = set(equation.split(' && '))
+        self.assertNotIn('v0 = 1', clauses)
+        self.assertNotIn('v1 = 1', clauses)
+        self.assertNotIn('p3 = 1', clauses)
+        self.assertIn('v0 | v1 = 1', clauses)
+        named = name_violation(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(named['kind'], 'result_then_not_end')
+        self.assertEqual(named['point'], 3)
+        self.assertEqual(named['legal'], [{'kind': 'result_then_not_end', 'point': 3}])
+        self.assertNotIn('sometimes', complement_script(named['fact']))
+        self.assertEqual(named['free'], 'discard')
+        self.assertFalse(named['keep_possible'])
+        self.assertEqual(named['free_event'], 'session_end')
+        named_two = name_violation(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
+        self.assertEqual(named_two['kind'], 'second_call')
+        self.assertEqual(named_two['point'], 4)
+        self.assertEqual(named_two['legal'], [
+            {'kind': 'result_then_not_end', 'point': 3},
+            {'kind': 'second_call', 'point': 4},
+        ])
+        self.assertEqual(named_two['free'], 'discard')
+        self.assertFalse(named_two['keep_possible'])
+        self.assertIsNone(name_violation(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
 
 
 if __name__ == '__main__':

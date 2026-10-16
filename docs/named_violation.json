@@ -1,0 +1,43 @@
+{
+  "local_session": {
+    "kind": "result_then_not_end",
+    "point": 3,
+    "recorded": "assistant",
+    "legal": [
+      {
+        "kind": "result_then_not_end",
+        "point": 3
+      }
+    ],
+    "fact": "o3[t] & o5[t]' != 0.",
+    "rule": "sometimes o5[t]:tau' o3[t]:tau = 0",
+    "clause": "d3' s2 = 0",
+    "free": "discard",
+    "free_event": "session_end",
+    "keep_possible": false,
+    "discard_possible": true
+  },
+  "two_calls": {
+    "kind": "second_call",
+    "point": 4,
+    "recorded": "tool_call",
+    "legal": [
+      {
+        "kind": "result_then_not_end",
+        "point": 3
+      },
+      {
+        "kind": "second_call",
+        "point": 4
+      }
+    ],
+    "fact": "o4[t] = 1.",
+    "rule": "sometimes o4[t]:tau' != 0",
+    "clause": "c4' != 0",
+    "free": "discard",
+    "free_event": "tool_result",
+    "keep_possible": false,
+    "discard_possible": true
+  },
+  "single_call": null
+}
