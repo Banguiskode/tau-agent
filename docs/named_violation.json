@@ -9,9 +9,10 @@
         "point": 3
       }
     ],
-    "fact": "o3[t] & o5[t]' != 0.",
-    "rule": "sometimes o5[t]:tau' o3[t]:tau = 0",
-    "clause": "d3' s2 = 0",
+    "observed": "o3[t] = 1 && o5[t] = 0",
+    "fact": "always o5[t]:tau = 0 && o3[t]:tau' = 0",
+    "rule": "sometimes o5[t]:tau != 0 || o3[t]:tau' != 0",
+    "clause": "d3 != 0 || s2' != 0",
     "free": "discard",
     "free_event": "session_end",
     "keep_possible": false,
@@ -31,7 +32,8 @@
         "point": 4
       }
     ],
-    "fact": "o4[t] = 1.",
+    "observed": "o4[t] = 1",
+    "fact": "always o4[t]:tau' = 0",
     "rule": "sometimes o4[t]:tau' != 0",
     "clause": "c4' != 0",
     "free": "discard",

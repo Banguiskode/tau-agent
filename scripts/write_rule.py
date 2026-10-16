@@ -473,10 +473,8 @@ def apply_written_reason(path: Path, timeout: int = 20) -> dict | None:
     }
 
 
-VIOLATIONS = {
-    'v0': ('result_then_not_end', "o3[t] & o5[t]' != 0."),
-    'v1': ('second_call', 'o4[t] = 1.'),
-}
+VIOLATIONS = {'v0': 'result_then_not_end', 'v1': 'second_call'}
+OBSERVED = {'v0': 'o3[t] = 1 && o5[t] = 0', 'v1': 'o4[t] = 1'}
 
 
 def violation_equation(events: list[dict]) -> str:
@@ -530,8 +528,26 @@ def named_apply_equation(events: list[dict], point: int, clause: str) -> str:
     bit = kind[body[point]['type']]
     parts.append(f"m & {bit}{point}' = 0")
     parts.append(f"m' & {bit}{point} = 0")
-    parts.append(clause)
+    parts.append(f'({clause})')
     return ' && '.join(parts)
+
+
+def printed_fact(formula: str, timeout: int = 20) -> str | None:
+    """La phrase est la ligne `%1:`. Si elle manque ou recopie l'entrée, rien."""
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=f'n {formula}\nquit\n',
+        capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Syntax Error' in output or 'Failed to parse' in output:
+        return None
+    for line in output.splitlines():
+        if line.startswith('%1:'):
+            phrase = line.split('%1:', 1)[1].strip()
+            if phrase and phrase != formula and 'always' in phrase:
+                return phrase
+    return None
 
 
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
@@ -547,7 +563,10 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         raise RuntimeError(f'violation is not one pair: {kinds} {points}')
     kind = kinds[0]
     point = points[0]
-    fact = VIOLATIONS[kind][1]
+    observed = OBSERVED[kind]
+    fact = printed_fact(observed, timeout)
+    if fact is None:
+        return None
     written = write_rule(path, fact=fact, timeout=timeout)
     if written is None or 'sometimes' not in written['rule']:
         return None
@@ -569,12 +588,13 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         probe_points = [time for time in range(len(body)) if probe.get(f'p{time}') == 1]
         if len(probe_points) != 1:
             raise RuntimeError(f'legal violation is not one point: {probe_points}')
-        legal.append({'kind': VIOLATIONS[name][0], 'point': probe_points[0]})
+        legal.append({'kind': VIOLATIONS[name], 'point': probe_points[0]})
     return {
-        'kind': VIOLATIONS[kind][0],
+        'kind': VIOLATIONS[kind],
         'point': point,
         'recorded': body[point]['type'],
         'legal': legal,
+        'observed': observed,
         'fact': fact,
         'rule': written['rule'],
         'clause': clause,

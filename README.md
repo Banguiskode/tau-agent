@@ -232,6 +232,11 @@ n'a qu'une violation, au pas 3, et il l'écarte. La session qui rappelait
 en a deux : ce passage nomme le second appel, au pas 4, et il l'écarte.
 L'autre reste légale. Sans violation, aucun fait n'est envoyé.
 
+Tau écrit la phrase du fait. L'observation est les bits, pas la phrase.
+`n` imprime une ligne qui n'est pas l'entrée, et qui porte `always`.
+Cette ligne est le fait. Le dual en sort. Sans violation, aucune phrase
+n'est écrite.
+
 ```bash
 python3 scripts/write_rule.py
 ```
