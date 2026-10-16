@@ -82,6 +82,82 @@ def revise_chain(path: Path, deny_call: bool = False, break_chain: bool = False,
     return events_from_window(witness, result_at + 3, call.get('call_id', 's1'))
 
 
+REV = {'a': 'e', 'c': 'f', 's': 'g', 'd': 'h'}
+REV_EVENT = {'a': 'assistant', 'c': 'tool_call', 's': 'tool_result', 'd': 'session_end'}
+
+
+def point_window(events: list[dict]) -> list[dict]:
+    body = [event for event in events if event['type'] != 'session_start']
+    calls = [index for index, event in enumerate(body) if event['type'] == 'tool_call']
+    last = calls[1] if len(calls) >= 2 else len(body) - 1
+    return body[:last + 1]
+
+
+def point_equation(events: list[dict]) -> str:
+    """Tau choisit l'indice. Python n'écrit pas `p4 = 1`."""
+    window = point_window(events)
+    parts: list[str] = []
+    for time, event in enumerate(window):
+        chosen = KIND[event['type']]
+        for bit in BITS:
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+        names = [f'{REV[bit]}{time}' for bit in BITS]
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+        parts.append(f"p{time} & c{time}' = 0")
+        if time == 0:
+            parts.append(f'p{time} = 0')
+        else:
+            earlier = ' & '.join(f"c{index}'" for index in range(time))
+            parts.append(f'p{time} & {earlier} = 0')
+        guard = ' & '.join(f"p{index}'" for index in range(time + 1))
+        for bit in BITS:
+            revised = f'{REV[bit]}{time}'
+            recorded = f'{bit}{time}'
+            parts.append(f"{guard} & {revised}' & {recorded} = 0")
+            parts.append(f"{guard} & {revised} & {recorded}' = 0")
+        parts.append(f'p{time} & f{time} = 0')
+    parts.append(' | '.join(f'p{time}' for time in range(len(window))) + ' = 1')
+    for left in range(len(window)):
+        for right in range(left + 1, len(window)):
+            parts.append(f'p{left} & p{right} = 0')
+    return ' && '.join(parts)
+
+
+def choose_point(path: Path, timeout: int = 20) -> dict | None:
+    events = load_events(path)
+    window = point_window(events)
+    witness = solve_assignments(point_equation(events), timeout)
+    if witness is None:
+        return None
+    chosen = [time for time in range(len(window)) if witness.get(f'p{time}') == 1]
+    if len(chosen) != 1:
+        raise RuntimeError(f'revision point is not one index: {chosen}')
+    point = chosen[0]
+    revised = [{'type': 'session_start'}]
+    for time, source in enumerate(window[:point + 1]):
+        bits = [bit for bit in BITS if witness.get(f'{REV[bit]}{time}') == 1]
+        if len(bits) != 1:
+            raise RuntimeError(f'revised step {time} is not one event: {bits}')
+        kind = REV_EVENT[bits[0]]
+        if kind == source['type'] == 'tool_call':
+            revised.append({'type': 'tool_call', 'call_id': source.get('call_id', 's1'), 'tool': source.get('tool')})
+        elif kind == source['type'] == 'tool_result':
+            revised.append({'type': 'tool_result', 'call_id': source.get('call_id', 's1'), 'ok': source.get('ok', True)})
+        elif kind == 'session_end':
+            revised.append({'type': 'session_end', 'status': 'PASS'})
+        else:
+            revised.append({'type': kind})
+    return {
+        'point': point,
+        'recorded_at_point': window[point]['type'],
+        'revised_at_point': revised[-1]['type'],
+        'events': revised,
+    }
+
+
 def revise_session(path: Path, deny_call: bool = False, timeout: int = 20) -> list[dict] | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -98,7 +174,22 @@ def main() -> int:
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
     parser.add_argument('--output', type=Path, default=None)
     parser.add_argument('--chain', action='store_true')
+    parser.add_argument('--choose', action='store_true')
     args = parser.parse_args()
+    if args.choose:
+        report = choose_point(Path('docs/trajectories/local_two_calls.jsonl'))
+        if report is None:
+            raise SystemExit('no solution')
+        output = args.output or Path('docs/revision_point.json')
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+        print(json.dumps({
+            'point': report['point'],
+            'recorded_at_point': report['recorded_at_point'],
+            'revised_at_point': report['revised_at_point'],
+            'output': str(output),
+        }))
+        return 0
     if args.chain:
         events = revise_chain(args.trace if args.trace.name != 'local_session.jsonl' else Path('docs/trajectories/local_two_calls.jsonl'))
         output = args.output or Path('docs/trajectories/revised_two_calls.jsonl')

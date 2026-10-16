@@ -155,6 +155,15 @@ rejoué. Casser la chaîne (`a3 = 0`) rend `no solution`. 0,2 s.
 python3 scripts/revise_session.py --chain
 ```
 
+Tau choisit le point. Python n'écrit pas `p4 = 1`. Sur la session à deux
+appels, le point choisi est le second appel. Le début est gardé. Ce pas
+n'est plus un appel. Sur la session à un seul appel, il n'y a pas de point :
+`no solution`, rien n'est inventé.
+
+```bash
+python3 scripts/revise_session.py --choose
+```
+
 ```bash
 python3 scripts/revise_session.py
 ```

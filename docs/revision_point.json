@@ -1,0 +1,30 @@
+{
+  "point": 4,
+  "recorded_at_point": "tool_call",
+  "revised_at_point": "session_end",
+  "events": [
+    {
+      "type": "session_start"
+    },
+    {
+      "type": "assistant"
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call_0d68aef7005842e1b606625c",
+      "tool": "read_file"
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call_0d68aef7005842e1b606625c",
+      "ok": true
+    },
+    {
+      "type": "assistant"
+    },
+    {
+      "type": "session_end",
+      "status": "PASS"
+    }
+  ]
+}

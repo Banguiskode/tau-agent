@@ -68,5 +68,30 @@ class ChainExecutionTests(unittest.TestCase):
         self.assertIsNone(revise_chain(TWO, break_chain=True))
 
 
+class ChoosePointTests(unittest.TestCase):
+    def test_the_index_is_not_written_by_python(self):
+        from revise_session import point_equation
+        clauses = set(point_equation(
+            [json.loads(line) for line in TWO.read_text().splitlines() if line.strip()]
+        ).split(' && '))
+        self.assertNotIn('p4 = 1', clauses)
+        self.assertIn('p0 = 0', clauses)
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class ChoosePointExecutionTests(unittest.TestCase):
+    def test_tau_chooses_the_second_call_and_invents_no_point_without_one(self):
+        from revise_session import choose_point
+        report = choose_point(TWO)
+        self.assertEqual(report['point'], 4)
+        self.assertEqual(report['recorded_at_point'], 'tool_call')
+        self.assertNotEqual(report['revised_at_point'], 'tool_call')
+        self.assertEqual(
+            [event['type'] for event in report['events'][:-1]],
+            ['session_start', 'assistant', 'tool_call', 'tool_result', 'assistant'],
+        )
+        self.assertIsNone(choose_point(TRACE))
+
+
 if __name__ == '__main__':
     unittest.main()
