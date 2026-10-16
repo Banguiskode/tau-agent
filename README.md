@@ -245,6 +245,10 @@ légal est publié.
 `n` imprime la clause nécessaire. Elle dit que le bit enregistré s'éteint.
 Elle n'est pas dans l'entrée. Elle ne nomme pas le remplaçant. On n'en pose pas.
 
+La même clause, réinstallée, laisse un `x` libre. `x1` et `x1'` ne sont
+pas des bits. On ne les convertit pas. Le pas d'exécution n'est pas le pas
+de la session. Le remplaçant n'est pas exécuté.
+
 ```bash
 python3 scripts/write_rule.py
 ```

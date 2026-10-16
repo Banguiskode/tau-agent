@@ -592,6 +592,41 @@ def normalized_clause(equation: str, timeout: int = 20) -> str | None:
     return None
 
 
+ASSIGNED = re.compile(r'(o\d+)\[(\d+)\] := (\S+)')
+UNBOUND = re.compile(r"x\d+'?")
+
+
+def execute_rule(rule: str, timeout: int = 20) -> dict | None:
+    """Un `x` dans l'exécution n'est pas un bit. On ne le convertit pas."""
+    line = installable(rule)
+    streams = sorted(set(re.findall(r'o\d+', line)))
+    if not streams:
+        return None
+    if not line.endswith('.'):
+        line += '.'
+    script = ''.join(f'{name}:sbf := out console.\n' for name in streams)
+    script += 'run u[0] = i1[0]\n' + line + '\n# step\nq\nquit\n'
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=script, capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Updated specification' not in output or 'Incompatible type' in output:
+        return None
+    rows = []
+    for name, step, value in ASSIGNED.findall(output):
+        if value in ('0', '1'):
+            rows.append({'stream': name, 'step': int(step), 'unbound': False})
+        elif UNBOUND.fullmatch(value):
+            rows.append({'stream': name, 'step': int(step), 'value': value, 'unbound': True})
+        else:
+            return None
+    if not rows:
+        return None
+    unbound = [f"{row['stream']}[{row['step']}]" for row in rows if row['unbound']]
+    return {'unbound': unbound, 'replacement_executed': not unbound}
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -647,6 +682,9 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         return None
     if recorded_off in set(apply_eq.split(' && ')):
         return None
+    executed = execute_rule(written['rule'], timeout)
+    if executed is None:
+        return None
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -663,6 +701,8 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'clause': clause,
         'printed_off': recorded_off,
         'replacement_named': len(named_on) == 1,
+        'unbound': executed['unbound'],
+        'replacement_executed': executed['replacement_executed'],
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'free_event': EVENT[chosen[0]],
         'legal_events': legal_events,

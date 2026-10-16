@@ -176,6 +176,8 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(named['legal_events'], ['tool_call', 'tool_result', 'session_end'])
         self.assertEqual(named['printed_off'], "a3' != 0")
         self.assertFalse(named['replacement_named'])
+        self.assertIn('o2[1]', named['unbound'])
+        self.assertFalse(named['replacement_executed'])
         from write_rule import named_apply_equation
         apply_eq = named_apply_equation(events, 3, named['clause'])
         self.assertNotIn(named['printed_off'], set(apply_eq.split(' && ')))
@@ -192,6 +194,8 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(named_two['legal_events'], ['assistant', 'tool_result', 'session_end'])
         self.assertEqual(named_two['printed_off'], "c4' != 0")
         self.assertFalse(named_two['replacement_named'])
+        self.assertIn('o4[1]', named_two['unbound'])
+        self.assertFalse(named_two['replacement_executed'])
         self.assertIsNone(name_violation(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
 
 
