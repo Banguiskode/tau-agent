@@ -107,15 +107,100 @@ def synthesize_trajectory(bound: int = 6) -> list[dict]:
     return events
 
 
+WINDOW_KIND = {'a': 'assistant', 'c': 'tool_call', 's': 'tool_result', 'd': 'session_end'}
+
+
+def window_equation(bound: int = 4, extra: tuple[str, ...] = ()) -> str:
+    """Une équation, toute la fenêtre. Les positions ne sont pas épinglées."""
+    if bound < 2:
+        raise ValueError('window needs at least two steps')
+    parts: list[str] = []
+    for t in range(bound):
+        names = [f'{bit}{t}' for bit in 'acsd']
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+    parts.extend(('c0 = 0', 's0 = 0', 'd0 = 0'))
+    for t in range(1, bound):
+        prior_a = ' & '.join(f"a{i}'" for i in range(t))
+        prior_c = ' & '.join(f"c{i}'" for i in range(t))
+        prior_s = ' & '.join(f"s{i}'" for i in range(t))
+        parts.append(f'c{t} & {prior_a} = 0')
+        parts.append(f's{t} & {prior_c} = 0')
+        parts.append(f'd{t} & {prior_s} = 0')
+    for bit in 'acsd':
+        names = [f'{bit}{t}' for t in range(bound)]
+        parts.append(' | '.join(names) + ' = 1')
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+    parts.extend(extra)
+    return ' && '.join(parts)
+
+
+def parse_assignments(text: str) -> dict | None:
+    if 'no solution' in text:
+        return None
+    found = {name: 1 if value == 'T' else 0 for name, value in ASSIGNMENT.findall(text)}
+    return found or None
+
+
+def solve_assignments(equation: str, timeout: int = 20) -> dict | None:
+    script = f'solve {equation}\nquit\n'
+    result = subprocess.run(['tau', '-X', '-q', '-c', 'false'], input=script,
+                            capture_output=True, text=True, timeout=timeout)
+    output = result.stdout + result.stderr
+    if 'Syntax Error' in output:
+        raise RuntimeError(output[-500:])
+    return parse_assignments(output)
+
+
+def events_from_window(witness: dict, bound: int = 4, call_id: str = 'w1') -> list[dict]:
+    events = [{'type': 'session_start'}]
+    for t in range(bound):
+        chosen = [bit for bit in 'acsd' if witness.get(f'{bit}{t}') == 1]
+        if len(chosen) != 1:
+            raise RuntimeError(f'window step {t} is not one event: {witness}')
+        kind = WINDOW_KIND[chosen[0]]
+        if kind == 'tool_call':
+            events.append({'type': 'tool_call', 'call_id': call_id, 'tool': 'tau_real_portfolio_gate'})
+        elif kind == 'tool_result':
+            events.append({'type': 'tool_result', 'call_id': call_id, 'ok': True})
+        elif kind == 'session_end':
+            events.append({'type': 'session_end', 'status': 'PASS'})
+            break
+        else:
+            events.append({'type': kind})
+    if events[-1]['type'] != 'session_end':
+        raise RuntimeError('window witness has no terminal step')
+    return events
+
+
+def synthesize_window(bound: int = 4, extra: tuple[str, ...] = ()) -> list[dict] | None:
+    witness = solve_assignments(window_equation(bound, extra))
+    if witness is None:
+        return None
+    return events_from_window(witness, bound)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--bound', type=int, default=6)
-    parser.add_argument('--output', type=Path, default=Path('docs/trajectories/synthesized.jsonl'))
+    parser.add_argument('--window', action='store_true')
+    parser.add_argument('--output', type=Path, default=None)
     args = parser.parse_args()
-    events = synthesize_trajectory(args.bound)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in events))
-    print(json.dumps({'events': [event['type'] for event in events], 'output': str(args.output)}))
+    if args.window:
+        events = synthesize_window()
+        if events is None:
+            raise SystemExit('no solution')
+        output = args.output or Path('docs/trajectories/synthesized_window.jsonl')
+    else:
+        events = synthesize_trajectory(args.bound)
+        output = args.output or Path('docs/trajectories/synthesized.jsonl')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in events))
+    print(json.dumps({'events': [event['type'] for event in events], 'output': str(output)}))
     return 0
 
 

@@ -95,19 +95,21 @@ chemin. Deux agents ne partagent plus le même verdict Tau.
 
 ## Synthèse au cœur
 
-Le pas suivant n'est pas choisi par Python puis vérifié. `scripts/synthesize_step.py`
-donne la politique à `solve`. Tau rend un témoin, et le harness émet ce témoin.
-Une demande contradictoire rend `no solution` : le pas n'est pas inventé.
+Le trajet entier tient dans un seul `solve`, pas dans une boucle Python.
+`scripts/synthesize_step.py --window` donne la politique sur quatre pas.
+Tau choisit les bits. Le harness lit le témoin. Un appel au pas 0 rend
+`no solution` : ce pas n'est pas inventé.
 
-Dans `solve`, la juxtaposition est une conjonction. Les inconnues sont une lettre,
-éventuellement suivie de chiffres (`a`, `c`, `r`, `d`), jamais `tool_call`.
+L'interpréteur `r` avec un regard en arrière n'est pas ce refus. Mesuré :
+un appel épinglé au pas 0 a quand même été exécuté. La fenêtre `solve`
+est le produit. La porte `r` reste la vérification après coup.
 
 ```bash
-python3 scripts/synthesize_step.py
+python3 scripts/synthesize_step.py --window
 ```
 
-Le trajet synthétisé, mesuré : décision, appel, résultat, fin. La porte `r`
-reste une vérification après coup, pas le produit.
+Témoin mesuré : décision, appel, résultat, fin. Une mission, un appel.
+Les positions ne sont pas écrites par Python.
 
 ## Lot de trajectoires
 
