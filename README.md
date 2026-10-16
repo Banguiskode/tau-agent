@@ -93,6 +93,22 @@ python3 scripts/run_tau_gate.py --trace docs/hermes_trace_canonical.jsonl
 `scripts/mission_gate.py` et `scripts/compare_agents.py` passent chacun par ce
 chemin. Deux agents ne partagent plus le même verdict Tau.
 
+## Synthèse au cœur
+
+Le pas suivant n'est pas choisi par Python puis vérifié. `scripts/synthesize_step.py`
+donne la politique à `solve`. Tau rend un témoin, et le harness émet ce témoin.
+Une demande contradictoire rend `no solution` : le pas n'est pas inventé.
+
+Dans `solve`, la juxtaposition est une conjonction. Les inconnues sont une lettre,
+éventuellement suivie de chiffres (`a`, `c`, `r`, `d`), jamais `tool_call`.
+
+```bash
+python3 scripts/synthesize_step.py
+```
+
+Le trajet synthétisé, mesuré : décision, appel, résultat, fin. La porte `r`
+reste une vérification après coup, pas le produit.
+
 ## Lot de trajectoires
 
 Sept chemins, sept formes. Le harness Python les accepte tous. Tau en accepte
