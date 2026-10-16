@@ -27,6 +27,8 @@
       "o2[2]",
       "o2[3]"
     ],
+    "point_clause": "o2[3]' != 0",
+    "point_fixed": 0,
     "event": null,
     "model": "tool_result",
     "free": "discard",
@@ -70,6 +72,8 @@
       "o4[2]",
       "o4[3]"
     ],
+    "point_clause": "o4[4]' != 0",
+    "point_fixed": 0,
     "event": null,
     "model": "tool_result",
     "free": "discard",

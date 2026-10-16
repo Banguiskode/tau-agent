@@ -253,6 +253,10 @@ de la session. Le remplaçant n'est pas exécuté.
 le `sometimes` qui se décharge ailleurs, pas le pas de la session. L'événement
 n'est pas écrit. Le modèle du solveur reste un modèle.
 
+La clause que `n` a imprimée, exécutée à son indice, fixe le bit.
+`o2[3]' != 0` rend 0. `o4[4]' != 0` rend 0. Ce n'est pas un `sometimes`.
+Les autres zéros ne sont pas lus. L'événement n'est toujours pas écrit.
+
 ```bash
 python3 scripts/write_rule.py
 ```

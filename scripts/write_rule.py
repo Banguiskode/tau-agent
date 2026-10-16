@@ -630,6 +630,23 @@ def execute_rule(rule: str, pin: str | None = None, timeout: int = 20) -> dict |
     return {'rows': rows, 'unbound': unbound, 'replacement_executed': not unbound}
 
 
+def execute_printed(stream: str, step: int, timeout: int = 20) -> dict | None:
+    """La clause de `n`, à son indice. Les autres zéros ne sont pas lus."""
+    clause = f"{stream}[{step}]' != 0"
+    script = f'{stream}:sbf := out console.\nrun {clause}\n# step\nq\nquit\n'
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=script, capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Error' in output or 'unsat' in output or f'{stream}[{step}]:sbf' not in output:
+        return None
+    match = re.search(rf'{stream}\[{step}\] := (\S+)', output)
+    if match is None or UNBOUND.fullmatch(match.group(1)) or match.group(1) not in ('0', '1'):
+        return None
+    return {'clause': clause, 'value': int(match.group(1))}
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -703,6 +720,11 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         for row in pinned['rows']
         if row['stream'] == recorded_stream and row.get('value') == 0 and row['step'] > 1
     ]
+    stem = recorded_off.split("'")[0]
+    bound = next(stream for stream, bit in binding.items() if bit == stem)
+    fixed = execute_printed(bound, point, timeout)
+    if fixed is None:
+        return None
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -724,6 +746,8 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'pinned': previous[0],
         'still_unbound': still,
         'later_off': later_off,
+        'point_clause': fixed['clause'],
+        'point_fixed': fixed['value'],
         'event': None,
         'model': EVENT[chosen[0]],
         'free': 'keep' if free.get('m') == 1 else 'discard',
