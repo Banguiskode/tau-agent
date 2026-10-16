@@ -93,5 +93,34 @@ class ChoosePointExecutionTests(unittest.TestCase):
         self.assertIsNone(choose_point(TRACE))
 
 
+SINGLE = Path(__file__).resolve().parents[1] / 'docs' / 'trajectories' / 'single_call.jsonl'
+
+
+class ChooseRuleTests(unittest.TestCase):
+    def test_neither_rule_is_pinned(self):
+        from revise_session import rule_equation
+        events = [json.loads(line) for line in TWO.read_text().splitlines() if line.strip()]
+        clauses = set(rule_equation(events).split(' && '))
+        self.assertNotIn('q0 = 1', clauses)
+        self.assertNotIn('q1 = 1', clauses)
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class ChooseRuleExecutionTests(unittest.TestCase):
+    def test_tau_picks_a_legal_rule_and_invents_none_without_a_violation(self):
+        from revise_session import choose_rule
+        two = choose_rule(TWO)
+        self.assertIn((two['rule'], two['point']), {('second_call', 4), ('second_decision', 3)})
+        if two['rule'] == 'second_call':
+            self.assertNotEqual(two['revised_at_point'], 'tool_call')
+        else:
+            self.assertNotEqual(two['revised_at_point'], 'assistant')
+        one = choose_rule(TRACE)
+        self.assertEqual(one['rule'], 'second_decision')
+        self.assertEqual(one['point'], 3)
+        self.assertNotEqual(one['revised_at_point'], 'assistant')
+        self.assertIsNone(choose_rule(SINGLE))
+
+
 if __name__ == '__main__':
     unittest.main()

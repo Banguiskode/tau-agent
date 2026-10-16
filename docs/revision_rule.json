@@ -1,0 +1,59 @@
+{
+  "two_calls": {
+    "rule": "second_decision",
+    "point": 3,
+    "recorded_at_point": "assistant",
+    "revised_at_point": "session_end",
+    "events": [
+      {
+        "type": "session_start"
+      },
+      {
+        "type": "assistant"
+      },
+      {
+        "type": "tool_call",
+        "call_id": "call_0d68aef7005842e1b606625c",
+        "tool": "read_file"
+      },
+      {
+        "type": "tool_result",
+        "call_id": "call_0d68aef7005842e1b606625c",
+        "ok": true
+      },
+      {
+        "type": "session_end",
+        "status": "PASS"
+      }
+    ]
+  },
+  "one_real": {
+    "rule": "second_decision",
+    "point": 3,
+    "recorded_at_point": "assistant",
+    "revised_at_point": "session_end",
+    "events": [
+      {
+        "type": "session_start"
+      },
+      {
+        "type": "assistant"
+      },
+      {
+        "type": "tool_call",
+        "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0",
+        "tool": "terminal"
+      },
+      {
+        "type": "tool_result",
+        "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0",
+        "ok": true
+      },
+      {
+        "type": "session_end",
+        "status": "PASS"
+      }
+    ]
+  },
+  "no_violation": null
+}

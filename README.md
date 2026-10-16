@@ -164,6 +164,17 @@ n'est plus un appel. Sur la session à un seul appel, il n'y a pas de point :
 python3 scripts/revise_session.py --choose
 ```
 
+Tau choisit aussi la règle. Deux règles sont proposées, aucune n'est
+épinglée : second appel, ou seconde décision. Sur la session à deux appels,
+les deux sont légales ; ce passage a choisi la seconde décision, au pas 3.
+Sur la session réelle à un appel puis une seconde décision, seule cette
+règle tient, au pas 3. Sur un trajet sans seconde décision ni second appel,
+`no solution`.
+
+```bash
+python3 scripts/revise_session.py --rule
+```
+
 ```bash
 python3 scripts/revise_session.py
 ```
