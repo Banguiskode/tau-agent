@@ -73,6 +73,12 @@ def probe_pair(links: list[str]) -> tuple[str, str, str]:
     return link, antecedent, f'{stream}[{step}] = 0'
 
 
+def slim_kernel(events: list[dict]) -> list[str]:
+    """Faits positifs et liens. Un prédécesseur absent reste à l'indice 0."""
+    facts = [fact for fact in closed_world(events) if fact.endswith(' = 1')]
+    return pins() + facts + policy_links(events)
+
+
 def negation_target(kernel: list[str], links: list[str]) -> str:
     result_facts = [fact for fact in kernel if fact.startswith('tool_result[') and fact.endswith(' = 1')]
     if result_facts:

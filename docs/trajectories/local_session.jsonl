@@ -1,0 +1,6 @@
+{"type": "session_start"}
+{"type": "assistant"}
+{"type": "tool_call", "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0", "tool": "terminal"}
+{"type": "tool_result", "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0", "ok": true}
+{"type": "assistant"}
+{"type": "session_end", "status": "session_reset"}

@@ -52,6 +52,35 @@ def normalize_record(record: dict, source: str) -> list[dict]:
     raise ValueError(f'unknown adapter: {source}')
 
 
+def normalize_hermes_session(records: list[dict], *, ended: bool, end_reason: str | None = None) -> list[dict]:
+    """Trajectoire d'une session Hermes réelle, sans texte ni arguments.
+
+    Un message utilisateur n'est pas un second départ. La fin vient de la
+    session (ended), pas d'un événement inventé dans les messages.
+    """
+    events = [{'type': 'session_start'}]
+    for record in records:
+        role = record.get('role')
+        if role in {'user', 'session_meta'}:
+            continue
+        if role == 'assistant':
+            events.append({'type': 'assistant'})
+            for call in record.get('tool_calls') or []:
+                function = call.get('function') or {}
+                events.append({'type': 'tool_call', 'call_id': call.get('id'),
+                               'tool': function.get('name')})
+        elif role == 'tool':
+            events.append({'type': 'tool_result', 'call_id': record.get('tool_call_id'),
+                           'ok': not bool(record.get('error'))})
+        elif record.get('event') == 'session_end':
+            events.append({'type': 'session_end', 'status': record.get('status', 'UNKNOWN')})
+        else:
+            raise ValueError(f'unsupported Hermes session role: {role}')
+    if ended and events[-1].get('type') != 'session_end':
+        events.append({'type': 'session_end', 'status': end_reason or 'UNKNOWN'})
+    return events
+
+
 def normalize_file(path: Path, source: str) -> list[dict]:
     events = []
     for line in path.read_text(errors='replace').splitlines():
