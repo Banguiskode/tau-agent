@@ -184,6 +184,11 @@ La source ne contient pas `sometimes`. Un nom illégal n'écrit rien.
 python3 scripts/write_rule.py
 ```
 
+Le dual est réinstallé sur le bit de la session. L'étiquette `:tau` est
+retirée, la clause non. Tau la fusionne en `sometimes o2[t]:sbf' != 0`.
+Au pas 3, celui de la seconde décision, le bit vaut 0. Sans règle, rien
+n'est réinstallé.
+
 ```bash
 python3 scripts/revise_session.py
 ```

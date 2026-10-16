@@ -39,6 +39,49 @@ def complement_script(fact: str) -> str:
     )
 
 
+def installable(rule: str) -> str:
+    """L'étiquette `:tau` casse le flux sbf. On retire l'étiquette, pas la clause."""
+    return rule.replace(':tau', '').strip()
+
+
+def reinstall_script(rule: str) -> str:
+    line = installable(rule)
+    if not line.endswith('.'):
+        line += '.'
+    return (
+        'o2:sbf := out console.\n'
+        'run u[0] = i1[0]\n'
+        f'{line}\n'
+        '# step\n'
+        'q\n'
+        'quit\n'
+    )
+
+
+def parse_reinstall(text: str) -> dict | None:
+    updated = re.search(r'Updated specification \(\d+ chars\): (.+)', text)
+    if not updated:
+        return None
+    off = [int(step) for step, value in re.findall(r'o2\[(\d+)\] := ([01])', text) if value == '0']
+    return {'updated': updated.group(1).strip(), 'off': off}
+
+
+def reinstall(rule: str | None, timeout: int = 20) -> dict | None:
+    if not rule:
+        return None
+    script = reinstall_script(rule)
+    result = subprocess.run(['tau', '-X', '-q', '-c', 'false'], input=script,
+                            capture_output=True, text=True, timeout=timeout)
+    output = result.stdout + result.stderr
+    if 'Failed to parse' in output or 'Syntax Error' in output:
+        return None
+    parsed = parse_reinstall(output)
+    if parsed is None:
+        return None
+    parsed['script'] = script
+    return parsed
+
+
 def parse_written_rule(text: str) -> str | None:
     match = RULE_RE.search(text)
     if not match:
@@ -67,14 +110,23 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
     parser.add_argument('--output', type=Path, default=Path('docs/written_rule.json'))
+    parser.add_argument('--reinstall-output', type=Path, default=Path('docs/reinstalled_rule.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
         raise SystemExit('no rule')
-    payload = {'fact': written['fact'], 'rule': written['rule']}
+    installed = reinstall(written['rule'])
+    if installed is None:
+        raise SystemExit('not reinstalled')
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({**payload, 'output': str(args.output)}))
+    args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
+    payload = {
+        'rule': written['rule'],
+        'updated': installed['updated'],
+        'off': installed['off'],
+    }
+    args.reinstall_output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({**payload, 'output': str(args.reinstall_output)}))
     return 0
 
 

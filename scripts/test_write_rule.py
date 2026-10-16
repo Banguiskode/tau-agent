@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from write_rule import complement_script, parse_written_rule
+from write_rule import complement_script, parse_written_rule, reinstall_script
 
 FIXTURE = """
 Execution step: 0
@@ -22,6 +22,8 @@ class WriteRuleTests(unittest.TestCase):
         self.assertNotIn('sometimes', script)
         self.assertEqual(parse_written_rule(FIXTURE), "sometimes o2[t]:tau' != 0")
         self.assertIsNone(parse_written_rule('Failed to parse input value\n'))
+        self.assertNotIn(':tau', reinstall_script("sometimes o2[t]:tau' != 0"))
+        self.assertIn("sometimes o2[t]' != 0.", reinstall_script("sometimes o2[t]:tau' != 0"))
 
 
 @unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
@@ -35,6 +37,11 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertNotIn('sometimes', written['script'])
         self.assertIsNone(write_rule(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
         self.assertIsNone(write_rule(root / 'docs' / 'trajectories' / 'local_session.jsonl', fact='a[3] = 1.'))
+        from write_rule import reinstall
+        installed = reinstall(written['rule'])
+        self.assertIn('sbf', installed['updated'])
+        self.assertIn(3, installed['off'])
+        self.assertIsNone(reinstall(None))
 
 
 if __name__ == '__main__':

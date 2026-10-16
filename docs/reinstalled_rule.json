@@ -1,0 +1,8 @@
+{
+  "rule": "sometimes o2[t]:tau' != 0",
+  "updated": "sometimes o2[t]:sbf' != 0",
+  "off": [
+    2,
+    3
+  ]
+}
