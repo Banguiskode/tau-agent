@@ -40,6 +40,18 @@ python3 scripts/llm_harness.py /tmp/mutated.jsonl \
 Le dernier contrôle doit échouer : un échec sur une trace mutée est une preuve
 que la porte rejette le comportement interdit.
 
+## Porte Tau de transition
+
+Le noyau `tau/agent_transition.tau` encode une trajectoire minimale : réponse de
+l'agent, appel d'outil, résultat, puis état terminal. La mutation ajoute un état
+terminal sans résultat et doit être `UNSAT`.
+
+```bash
+python3 scripts/run_tau_gate.py
+```
+
+Le rapport est écrit dans `tau/verdict.json`.
+
 ## État du projet
 
 - adaptateurs Hermes et Claude Code vers une trace canonique ;

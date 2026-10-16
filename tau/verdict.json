@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "file": "agent_transition.tau",
+      "obtained": "SAT",
+      "returncode": 0,
+      "wall_s": 0.116,
+      "expected": "SAT",
+      "status": "PASS"
+    },
+    {
+      "file": "agent_transition_mutation.tau",
+      "obtained": "UNSAT",
+      "returncode": 0,
+      "wall_s": 0.074,
+      "expected": "UNSAT",
+      "status": "PASS"
+    }
+  ],
+  "command": "tau -X -q -c false < spec.tau"
+}

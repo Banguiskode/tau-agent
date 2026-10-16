@@ -1,0 +1,8 @@
+# Tau Agent mutation: a terminal state without a tool result.
+assistant : sbf := out console.
+tool_call : sbf := out console.
+tool_result : sbf := out console.
+done : sbf := out console.
+r ([t < 1] -> assistant[t] = 0) && ([t < 1] -> tool_call[t] = 0) && ([t < 1] -> tool_result[t] = 0) && ([t < 1] -> done[t] = 0) && (assistant[2] = 1) && (tool_call[3] = 1) && (tool_result[4] = 1) && (done[5] = 1) && (tool_call[3] = 1 -> assistant[2] = 1) && (tool_result[4] = 1 -> tool_call[3] = 1) && (done[5] = 1 -> tool_result[4] = 1) && (tool_result[4] = 0)
+q
+quit
