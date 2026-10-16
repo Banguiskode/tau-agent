@@ -474,7 +474,8 @@ def apply_written_reason(path: Path, timeout: int = 20) -> dict | None:
 
 
 VIOLATIONS = {'v0': 'result_then_not_end', 'v1': 'second_call'}
-OBSERVED = {'v0': 'o3[t] = 1 && o5[t] = 0', 'v1': 'o4[t] = 1'}
+STREAM = {'assistant': 'o2', 'tool_result': 'o3', 'tool_call': 'o4', 'session_end': 'o5'}
+STREAM_BIT = {'o2': 'a', 'o3': 's', 'o4': 'c', 'o5': 'd'}
 
 
 def violation_equation(events: list[dict]) -> str:
@@ -532,6 +533,29 @@ def named_apply_equation(events: list[dict], point: int, clause: str) -> str:
     return ' && '.join(parts)
 
 
+def observation_formula(events: list[dict], point: int) -> tuple[str, dict[str, str]] | None:
+    """Les bits du pas nommé et du pas d'avant. Pas une phrase par sorte."""
+    body = [event for event in events if event['type'] != 'session_start']
+    binding: dict[str, str] = {}
+    terms: list[str] = []
+    for time in (point, point - 1):
+        if time < 0:
+            continue
+        stream = STREAM[body[time]['type']]
+        if stream in binding:
+            return None
+        binding[stream] = f'{STREAM_BIT[stream]}{time}'
+        terms.append(f'{stream}[t] = 1')
+    return ' && '.join(terms), binding
+
+
+def bind_printed(rule: str, binding: dict[str, str]) -> str:
+    clause = installable(rule).replace('sometimes ', '').strip().rstrip('.')
+    for stream, bit in sorted(binding.items(), key=lambda item: -len(item[0])):
+        clause = clause.replace(f'{stream}[t]', bit)
+    return clause
+
+
 def printed_fact(formula: str, timeout: int = 20) -> str | None:
     """La phrase est la ligne `%1:`. Si elle manque ou recopie l'entrée, rien."""
     result = subprocess.run(
@@ -563,8 +587,11 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         raise RuntimeError(f'violation is not one pair: {kinds} {points}')
     kind = kinds[0]
     point = points[0]
-    observed = OBSERVED[kind]
-    fact = printed_fact(observed, timeout)
+    observed = observation_formula(events, point)
+    if observed is None:
+        return None
+    formula, binding = observed
+    fact = printed_fact(formula, timeout)
     if fact is None:
         return None
     written = write_rule(path, fact=fact, timeout=timeout)
@@ -572,7 +599,9 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         return None
     if written['rule'] in written['script'] or 'sometimes' in written['script']:
         return None
-    clause = bind_named(written['rule'], point)
+    clause = bind_printed(written['rule'], binding)
+    if not any(bit in clause for bit in binding.values()):
+        return None
     apply_eq = named_apply_equation(events, point, clause)
     free = solve_assignments(apply_eq, timeout)
     if free is None or free.get('m') not in (0, 1):
@@ -589,17 +618,23 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         if len(probe_points) != 1:
             raise RuntimeError(f'legal violation is not one point: {probe_points}')
         legal.append({'kind': VIOLATIONS[name], 'point': probe_points[0]})
+    legal_events = [
+        EVENT[bit]
+        for bit in 'acsd'
+        if solve_assignments(apply_eq + f' && {bit}{point} = 1', timeout) is not None
+    ]
     return {
         'kind': VIOLATIONS[kind],
         'point': point,
         'recorded': body[point]['type'],
         'legal': legal,
-        'observed': observed,
+        'observed': formula,
         'fact': fact,
         'rule': written['rule'],
         'clause': clause,
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'free_event': EVENT[chosen[0]],
+        'legal_events': legal_events,
         'keep_possible': solve_assignments(apply_eq + ' && m = 1', timeout) is not None,
         'discard_possible': solve_assignments(apply_eq + ' && m = 0', timeout) is not None,
     }

@@ -237,6 +237,11 @@ Tau écrit la phrase du fait. L'observation est les bits, pas la phrase.
 Cette ligne est le fait. Le dual en sort. Sans violation, aucune phrase
 n'est écrite.
 
+La formule donnée à `n` est lue sur le pas nommé, et sur le pas d'avant.
+Ce n'est pas une phrase par sorte. Deux événements du même nom : rien
+n'est écrit. Le témoin libre n'est pas le seul remplaçant : l'ensemble
+légal est publié.
+
 ```bash
 python3 scripts/write_rule.py
 ```

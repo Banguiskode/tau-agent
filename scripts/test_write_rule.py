@@ -165,21 +165,26 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(named['point'], 3)
         self.assertEqual(named['legal'], [{'kind': 'result_then_not_end', 'point': 3}])
         self.assertNotIn('always', named['observed'])
+        self.assertEqual(named['observed'], 'o2[t] = 1 && o3[t] = 1')
+        self.assertNotIn('o5[t] = 0', named['observed'])
         self.assertIn('always', named['fact'])
         self.assertNotEqual(named['fact'], named['observed'])
         self.assertNotIn('sometimes', complement_script(named['fact']))
         self.assertEqual(named['free'], 'discard')
         self.assertFalse(named['keep_possible'])
-        self.assertEqual(named['free_event'], 'session_end')
+        self.assertEqual(named['free_event'], 'tool_result')
+        self.assertEqual(named['legal_events'], ['tool_call', 'tool_result', 'session_end'])
         named_two = name_violation(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
         self.assertEqual(named_two['kind'], 'second_call')
         self.assertEqual(named_two['point'], 4)
+        self.assertEqual(named_two['observed'], 'o4[t] = 1 && o2[t] = 1')
         self.assertEqual(named_two['legal'], [
             {'kind': 'result_then_not_end', 'point': 3},
             {'kind': 'second_call', 'point': 4},
         ])
         self.assertEqual(named_two['free'], 'discard')
         self.assertFalse(named_two['keep_possible'])
+        self.assertEqual(named_two['legal_events'], ['assistant', 'tool_result', 'session_end'])
         self.assertIsNone(name_violation(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
 
 

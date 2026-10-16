@@ -9,12 +9,17 @@
         "point": 3
       }
     ],
-    "observed": "o3[t] = 1 && o5[t] = 0",
-    "fact": "always o5[t]:tau = 0 && o3[t]:tau' = 0",
-    "rule": "sometimes o5[t]:tau != 0 || o3[t]:tau' != 0",
-    "clause": "d3 != 0 || s2' != 0",
+    "observed": "o2[t] = 1 && o3[t] = 1",
+    "fact": "always o3[t]:tau' = 0 && o2[t]:tau' = 0",
+    "rule": "sometimes o3[t]:tau' != 0 || o2[t]:tau' != 0",
+    "clause": "s2' != 0 || a3' != 0",
     "free": "discard",
-    "free_event": "session_end",
+    "free_event": "tool_result",
+    "legal_events": [
+      "tool_call",
+      "tool_result",
+      "session_end"
+    ],
     "keep_possible": false,
     "discard_possible": true
   },
@@ -32,12 +37,17 @@
         "point": 4
       }
     ],
-    "observed": "o4[t] = 1",
-    "fact": "always o4[t]:tau' = 0",
-    "rule": "sometimes o4[t]:tau' != 0",
-    "clause": "c4' != 0",
+    "observed": "o4[t] = 1 && o2[t] = 1",
+    "fact": "always o4[t]:tau' = 0 && o2[t]:tau' = 0",
+    "rule": "sometimes o4[t]:tau' != 0 || o2[t]:tau' != 0",
+    "clause": "c4' != 0 || a3' != 0",
     "free": "discard",
     "free_event": "tool_result",
+    "legal_events": [
+      "assistant",
+      "tool_result",
+      "session_end"
+    ],
     "keep_possible": false,
     "discard_possible": true
   },
