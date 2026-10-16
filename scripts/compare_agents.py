@@ -19,13 +19,19 @@ def load_events(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def run_tau() -> bool:
-    command = [sys.executable, str(ROOT / 'scripts' / 'run_tau_gate.py')]
-    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+def tau_gate_command(trace: Path, output: Path) -> list[str]:
+    return [sys.executable, str(ROOT / 'scripts' / 'run_tau_gate.py'),
+            '--trace', str(trace), '--output', str(output)]
+
+
+def run_tau(trace: Path, output: Path) -> dict:
+    result = subprocess.run(tau_gate_command(trace, output), cwd=ROOT, capture_output=True, text=True)
     try:
-        return json.loads(result.stdout.strip().splitlines()[-1]).get('status') == 'PASS'
+        report = json.loads(result.stdout.strip().splitlines()[-1])
     except (IndexError, json.JSONDecodeError):
-        return False
+        report = {'status': 'FAIL', 'stderr': result.stderr[-1000:]}
+    report['source'] = 'trace'
+    return report
 
 
 def main() -> int:
@@ -40,12 +46,16 @@ def main() -> int:
         fixtures = json.loads(Path(item['fixtures']).read_text())
         trace = validate_trace(events, set(item.get('allow_tools', [])))
         replay = replay_trace(events, fixtures)
+        tau = {'status': 'NOT_RUN'}
+        if trace['valid'] and replay['replayed']:
+            tau = run_tau(Path(item['trace']), ROOT / 'tau' / f"verdict_{item['agent']}.json")
+        agent_ok = trace['valid'] and replay['replayed'] and tau.get('status') == 'PASS'
         records.append({'agent': item['agent'], 'trace': trace, 'replay': replay,
-                        'status': 'PASS' if trace['valid'] and replay['replayed'] else 'FAIL'})
-    tau_ok = run_tau() if summarize_comparison(records)['all_pass'] else False
-    report = {'status': 'PASS' if summarize_comparison(records)['all_pass'] and tau_ok else 'FAIL',
-              'agents': records, 'tau': 'PASS' if tau_ok else 'FAIL',
-              'summary': summarize_comparison(records)}
+                        'tau': tau, 'status': 'PASS' if agent_ok else 'FAIL'})
+    summary = summarize_comparison(records)
+    report = {'status': 'PASS' if summary['all_pass'] else 'FAIL',
+              'agents': records, 'tau': 'per_trace',
+              'summary': summary}
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({'status': report['status'], 'summary': report['summary'],
                       'output': str(args.output)}))

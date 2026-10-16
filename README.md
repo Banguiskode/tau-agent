@@ -78,17 +78,33 @@ python3 scripts/mission_gate.py docs/hermes_trace_canonical.jsonl \
 Le verdict est écrit dans `mission_verdict.json`. Un seul échec bloque la
 mission et indique la couche fautive.
 
-## Porte Tau de transition
+## Porte Tau émise depuis la trace
 
-Le noyau `tau/agent_transition.tau` encode une trajectoire minimale : réponse de
-l'agent, appel d'outil, résultat, puis état terminal. La mutation ajoute un état
-terminal sans résultat et doit être `UNSAT`.
+La mission ne rejoue pas un noyau figé. `scripts/emit_tau_trace.py` construit la
+spec depuis la trace canonique : un fait ponctuel par pas, un lien indexé vers
+l'appel du même `call_id`, et une mutation qui ajoute une négation au noyau
+intact. Un appel sans décision antérieure vise l'indice 0, déjà épinglé à 0 :
+le noyau est alors `UNSAT`.
+
+```bash
+python3 scripts/run_tau_gate.py --trace docs/hermes_trace_canonical.jsonl
+```
+
+`scripts/mission_gate.py` et `scripts/compare_agents.py` passent chacun par ce
+chemin. Deux agents ne partagent plus le même verdict Tau.
+
+## Porte Tau de transition, exemple manuel
+
+Le noyau `tau/agent_transition.tau` reste l'exemple écrit à la main de la même
+forme. `scripts/run_tau_gate.py` sans `--trace` l'exécute encore. Il ne juge
+pas la trace passée à la mission.
 
 ```bash
 python3 scripts/run_tau_gate.py
 ```
 
-Le rapport est écrit dans `tau/verdict.json`.
+Le rapport est écrit dans `tau/verdict.json`. La CI exécute les tests Python ;
+elle n'exécute pas Tau, le binaire n'y est pas installé.
 
 ## État du projet
 
@@ -96,7 +112,9 @@ Le rapport est écrit dans `tau/verdict.json`.
 - validation des outils, appels, résultats et terminaison ;
 - replay déterministe par fixtures ;
 - mutations : outil interdit, résultat orphelin, arrêt prématuré, résultat ignoré ;
-- propriétés Tau et comparaison multi-modèles : prochaines tranches.
+- propriétés Tau émises depuis chaque trace, exécutées localement (`SAT` /
+  `UNSAT` / contrôle libre) ;
+- comparaison multi-agents sur la spec de chacun, pas sur un noyau partagé.
 
 Le projet conserve volontairement une séparation stricte entre le runtime de
 l'agent, l'adaptation de sa trace et la vérification indépendante.

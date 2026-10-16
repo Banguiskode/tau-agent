@@ -1,20 +1,56 @@
 {
   "status": "PASS",
+  "source": "trace",
+  "trace": "docs/hermes_trace_canonical.jsonl",
   "cases": [
     {
-      "file": "agent_transition.tau",
+      "file": "kernel.tau",
       "obtained": "SAT",
       "returncode": 0,
-      "wall_s": 0.118,
+      "wall_s": 0.242,
+      "case": "kernel",
       "expected": "SAT",
+      "sha256": "8349843707a88175",
       "status": "PASS"
     },
     {
-      "file": "agent_transition_mutation.tau",
+      "file": "negate_fact.tau",
       "obtained": "UNSAT",
       "returncode": 0,
-      "wall_s": 0.075,
+      "wall_s": 0.156,
+      "case": "negate_fact",
       "expected": "UNSAT",
+      "sha256": "9786d5a0ed1ba631",
+      "status": "PASS"
+    },
+    {
+      "file": "link_probe.tau",
+      "obtained": "SAT",
+      "returncode": 0,
+      "wall_s": 0.082,
+      "case": "link_probe",
+      "expected": "SAT",
+      "sha256": "656d909d5f60aeee",
+      "status": "PASS"
+    },
+    {
+      "file": "link_probe_neg.tau",
+      "obtained": "UNSAT",
+      "returncode": 0,
+      "wall_s": 0.047,
+      "case": "link_probe_neg",
+      "expected": "UNSAT",
+      "sha256": "4a35f1c4495345b1",
+      "status": "PASS"
+    },
+    {
+      "file": "control_free.tau",
+      "obtained": "SAT",
+      "returncode": 0,
+      "wall_s": 0.251,
+      "case": "control_free",
+      "expected": "SAT",
+      "sha256": "60808205c8b341c5",
       "status": "PASS"
     }
   ],

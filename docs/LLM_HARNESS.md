@@ -43,12 +43,16 @@ python3 scripts/llm_adapters.py hermes input.jsonl normalized.jsonl
 python3 scripts/llm_replay.py normalized.jsonl fixtures.json
 ```
 
-## Suite prévue
+## Suite livrée ensuite
 
-1. propriétés Tau sur les transitions (`assistant → tool_call → tool_result`) ;
+1. propriétés Tau émises depuis la trace (`emit_tau_trace.py`), exécutées avec
+   `tau -X -q -c false` : noyau `SAT`, négation `UNSAT`, sonde de lien `SAT`
+   puis négation du conséquent `UNSAT`, contrôle libre `SAT` ;
 2. mutations d'agent : outil interdit, appel orphelin, arrêt prématuré,
    résultat ignoré ;
-3. comparaison des verdicts entre modèles et versions.
+3. comparaison des verdicts par agent, chacun sur sa propre spec.
+
+La CI ne lance pas Tau. Un test d'exécution est ignoré si le binaire est absent.
 
 ## Mutations négatives
 

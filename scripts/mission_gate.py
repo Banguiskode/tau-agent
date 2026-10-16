@@ -13,6 +13,11 @@ from llm_replay import replay_trace
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def tau_gate_command(trace: Path) -> list[str]:
+    return [sys.executable, str(ROOT / 'scripts' / 'run_tau_gate.py'),
+            '--trace', str(trace), '--output', str(ROOT / 'tau' / 'verdict.json')]
+
+
 def summarize_mission(trace_ok: bool, replay_ok: bool, tau_ok: bool) -> dict:
     if not trace_ok:
         return {'status': 'FAIL', 'blocked_by': 'trace'}
@@ -36,7 +41,7 @@ def main() -> int:
     replay = replay_trace(events, fixtures)
     tau = {'status': 'NOT_RUN'}
     if trace['valid'] and replay['replayed']:
-        command = [sys.executable, str(ROOT / 'scripts' / 'run_tau_gate.py')]
+        command = tau_gate_command(args.trace)
         run = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
         try:
             tau = json.loads(run.stdout.strip().splitlines()[-1])
