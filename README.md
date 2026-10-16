@@ -194,6 +194,9 @@ remplaçant. Ce passage remplit un résultat. Sans l'interdiction, la
 décision enregistrée reste possible. Un trajet sans seconde décision
 n'a pas de remplaçant.
 
+Les trois autres événements sont légaux : appel, résultat, fin. La
+décision ne l'est pas. Un seul témoin n'est pas l'ensemble.
+
 ```bash
 python3 scripts/write_rule.py
 ```

@@ -54,6 +54,14 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertNotEqual(replaced['replacement'], 'assistant')
         self.assertTrue(replaced['decision_still_possible'])
         self.assertIsNone(replace_event(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
+        from write_rule import legal_replacements
+        legal = legal_replacements(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(legal['point'], 3)
+        self.assertEqual(
+            set(legal['legal']),
+            {'tool_call', 'tool_result', 'session_end'},
+        )
+        self.assertNotIn('assistant', legal['legal'])
 
 
 if __name__ == '__main__':

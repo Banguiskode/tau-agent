@@ -166,12 +166,33 @@ def replace_event(path: Path, timeout: int = 20) -> dict | None:
     }
 
 
+def legal_replacements(path: Path, timeout: int = 20) -> dict | None:
+    written = write_rule(path, timeout=timeout)
+    if written is None:
+        return None
+    installed = reinstall(written['rule'], timeout=timeout)
+    if installed is None:
+        return None
+    events = load_events(path)
+    ban = second_decision(events)
+    if ban is None or ban not in installed['off']:
+        return None
+    equation = replacement_equation(events, ban)
+    legal = []
+    for bit, name in EVENT.items():
+        witness = solve_assignments(equation + f' && {bit}{ban} = 1', timeout)
+        if witness is not None and witness.get(f'{bit}{ban}') == 1:
+            legal.append(name)
+    return {'point': ban, 'legal': legal}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
     parser.add_argument('--output', type=Path, default=Path('docs/written_rule.json'))
     parser.add_argument('--reinstall-output', type=Path, default=Path('docs/reinstalled_rule.json'))
     parser.add_argument('--replacement-output', type=Path, default=Path('docs/replacement.json'))
+    parser.add_argument('--legal-output', type=Path, default=Path('docs/legal_replacements.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -182,6 +203,9 @@ def main() -> int:
     replaced = replace_event(args.trace)
     if replaced is None:
         raise SystemExit('no replacement')
+    legal = legal_replacements(args.trace)
+    if legal is None:
+        raise SystemExit('no legal set')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
     args.reinstall_output.write_text(json.dumps({
@@ -190,7 +214,8 @@ def main() -> int:
         'off': installed['off'],
     }, ensure_ascii=False, indent=2) + '\n')
     args.replacement_output.write_text(json.dumps(replaced, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({**replaced, 'output': str(args.replacement_output)}))
+    args.legal_output.write_text(json.dumps(legal, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({**legal, 'output': str(args.legal_output)}))
     return 0
 
 

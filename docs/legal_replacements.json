@@ -1,0 +1,8 @@
+{
+  "point": 3,
+  "legal": [
+    "tool_call",
+    "tool_result",
+    "session_end"
+  ]
+}
