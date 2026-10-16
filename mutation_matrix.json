@@ -1,0 +1,104 @@
+{
+  "status": "PASS",
+  "summary": {
+    "nominal": "PASS",
+    "mutations": 4,
+    "rejected": 4,
+    "status": "PASS"
+  },
+  "nominal": {
+    "trace": {
+      "valid": true,
+      "errors": [],
+      "tool_calls": 1,
+      "events": 6,
+      "status": "PASS"
+    },
+    "replay": {
+      "replayed": true,
+      "errors": [],
+      "checked_calls": 1,
+      "status": "PASS"
+    }
+  },
+  "mutations": [
+    {
+      "mutation": "disallowed_tool",
+      "accepted": false,
+      "trace": {
+        "valid": false,
+        "errors": [
+          "disallowed tool at 2: forbidden_tool"
+        ],
+        "tool_calls": 1,
+        "events": 6,
+        "status": "FAIL"
+      },
+      "replay": {
+        "replayed": true,
+        "errors": [],
+        "checked_calls": 1,
+        "status": "PASS"
+      }
+    },
+    {
+      "mutation": "orphan_result",
+      "accepted": false,
+      "trace": {
+        "valid": false,
+        "errors": [
+          "orphan tool_result at 2: h1"
+        ],
+        "tool_calls": 0,
+        "events": 5,
+        "status": "FAIL"
+      },
+      "replay": {
+        "replayed": true,
+        "errors": [],
+        "checked_calls": 0,
+        "status": "PASS"
+      }
+    },
+    {
+      "mutation": "early_stop",
+      "accepted": false,
+      "trace": {
+        "valid": false,
+        "errors": [
+          "trace has no terminal session_end"
+        ],
+        "tool_calls": 1,
+        "events": 5,
+        "status": "FAIL"
+      },
+      "replay": {
+        "replayed": true,
+        "errors": [],
+        "checked_calls": 1,
+        "status": "PASS"
+      }
+    },
+    {
+      "mutation": "ignored_result",
+      "accepted": false,
+      "trace": {
+        "valid": false,
+        "errors": [
+          "unresolved tool_call: h1"
+        ],
+        "tool_calls": 1,
+        "events": 5,
+        "status": "FAIL"
+      },
+      "replay": {
+        "replayed": false,
+        "errors": [
+          "missing observed result: h1"
+        ],
+        "checked_calls": 0,
+        "status": "FAIL"
+      }
+    }
+  ]
+}

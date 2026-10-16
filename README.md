@@ -40,6 +40,18 @@ python3 scripts/llm_harness.py /tmp/mutated.jsonl \
 Le dernier contrôle doit échouer : un échec sur une trace mutée est une preuve
 que la porte rejette le comportement interdit.
 
+## Matrice de mutations
+
+`mutation_matrix.py` vérifie un cas nominal et quatre trajectoires fautives.
+La matrice ne passe que si le nominal est accepté et si toutes les mutations
+sont rejetées.
+
+```bash
+python3 scripts/mutation_matrix.py docs/hermes_trace_canonical.jsonl \
+  docs/hermes_replay_fixtures.json \
+  --allow-tool tau_real_portfolio_gate
+```
+
 ## Comparaison d'agents
 
 `compare_agents.py` applique le même replay et la même porte Tau à plusieurs
