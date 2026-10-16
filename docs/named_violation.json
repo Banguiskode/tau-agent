@@ -19,8 +19,17 @@
       "o2[1]"
     ],
     "replacement_executed": false,
+    "pinned": "o3",
+    "still_unbound": [
+      "o2[1]"
+    ],
+    "later_off": [
+      "o2[2]",
+      "o2[3]"
+    ],
+    "event": null,
+    "model": "tool_result",
     "free": "discard",
-    "free_event": "tool_result",
     "legal_events": [
       "tool_call",
       "tool_result",
@@ -53,8 +62,17 @@
       "o4[1]"
     ],
     "replacement_executed": false,
+    "pinned": "o2",
+    "still_unbound": [
+      "o4[1]"
+    ],
+    "later_off": [
+      "o4[2]",
+      "o4[3]"
+    ],
+    "event": null,
+    "model": "tool_result",
     "free": "discard",
-    "free_event": "tool_result",
     "legal_events": [
       "assistant",
       "tool_result",

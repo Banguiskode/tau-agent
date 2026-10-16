@@ -249,6 +249,10 @@ La même clause, réinstallée, laisse un `x` libre. `x1` et `x1'` ne sont
 pas des bits. On ne les convertit pas. Le pas d'exécution n'est pas le pas
 de la session. Le remplaçant n'est pas exécuté.
 
+Épingler le bit observé ne retire pas le `x`. Le 0 d'un pas plus loin est
+le `sometimes` qui se décharge ailleurs, pas le pas de la session. L'événement
+n'est pas écrit. Le modèle du solveur reste un modèle.
+
 ```bash
 python3 scripts/write_rule.py
 ```

@@ -596,16 +596,19 @@ ASSIGNED = re.compile(r'(o\d+)\[(\d+)\] := (\S+)')
 UNBOUND = re.compile(r"x\d+'?")
 
 
-def execute_rule(rule: str, timeout: int = 20) -> dict | None:
+def execute_rule(rule: str, pin: str | None = None, timeout: int = 20) -> dict | None:
     """Un `x` dans l'exécution n'est pas un bit. On ne le convertit pas."""
     line = installable(rule)
     streams = sorted(set(re.findall(r'o\d+', line)))
+    if pin:
+        streams = sorted(set(streams) | {pin})
     if not streams:
         return None
     if not line.endswith('.'):
         line += '.'
+    run = f'run {pin}[t] = 1 && u[0] = i1[0]\n' if pin else 'run u[0] = i1[0]\n'
     script = ''.join(f'{name}:sbf := out console.\n' for name in streams)
-    script += 'run u[0] = i1[0]\n' + line + '\n# step\nq\nquit\n'
+    script += run + line + '\n# step\nq\nquit\n'
     result = subprocess.run(
         ['tau', '-X', '-q', '-c', 'false'],
         input=script, capture_output=True, text=True, timeout=timeout,
@@ -616,7 +619,7 @@ def execute_rule(rule: str, timeout: int = 20) -> dict | None:
     rows = []
     for name, step, value in ASSIGNED.findall(output):
         if value in ('0', '1'):
-            rows.append({'stream': name, 'step': int(step), 'unbound': False})
+            rows.append({'stream': name, 'step': int(step), 'value': int(value), 'unbound': False})
         elif UNBOUND.fullmatch(value):
             rows.append({'stream': name, 'step': int(step), 'value': value, 'unbound': True})
         else:
@@ -624,7 +627,7 @@ def execute_rule(rule: str, timeout: int = 20) -> dict | None:
     if not rows:
         return None
     unbound = [f"{row['stream']}[{row['step']}]" for row in rows if row['unbound']]
-    return {'unbound': unbound, 'replacement_executed': not unbound}
+    return {'rows': rows, 'unbound': unbound, 'replacement_executed': not unbound}
 
 
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
@@ -682,9 +685,24 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         return None
     if recorded_off in set(apply_eq.split(' && ')):
         return None
-    executed = execute_rule(written['rule'], timeout)
+    executed = execute_rule(written['rule'], timeout=timeout)
     if executed is None:
         return None
+    recorded_stream = next(stream for stream, bit in binding.items() if bit.endswith(str(point)))
+    previous = [stream for stream in binding if stream != recorded_stream]
+    if len(previous) != 1:
+        return None
+    pinned = execute_rule(written['rule'], pin=previous[0], timeout=timeout)
+    if pinned is None:
+        return None
+    still = [item for item in pinned['unbound'] if item.startswith(f'{recorded_stream}[')]
+    if not still:
+        return None
+    later_off = [
+        f"{row['stream']}[{row['step']}]"
+        for row in pinned['rows']
+        if row['stream'] == recorded_stream and row.get('value') == 0 and row['step'] > 1
+    ]
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -702,9 +720,13 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'printed_off': recorded_off,
         'replacement_named': len(named_on) == 1,
         'unbound': executed['unbound'],
-        'replacement_executed': executed['replacement_executed'],
+        'replacement_executed': False,
+        'pinned': previous[0],
+        'still_unbound': still,
+        'later_off': later_off,
+        'event': None,
+        'model': EVENT[chosen[0]],
         'free': 'keep' if free.get('m') == 1 else 'discard',
-        'free_event': EVENT[chosen[0]],
         'legal_events': legal_events,
         'keep_possible': solve_assignments(apply_eq + ' && m = 1', timeout) is not None,
         'discard_possible': solve_assignments(apply_eq + ' && m = 0', timeout) is not None,
