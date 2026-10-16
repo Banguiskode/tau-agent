@@ -215,6 +215,12 @@ La raison est la loi déjà écrite : après un résultat, on s'arrête.
 `d3' & s2 = 0` n'épingle ni `m` ni la fin. La session qui finissait
 garde ce pas. La session qui rappelait l'écarte, et Tau met une fin.
 
+Tau choisit la loi. `n0 = 1` et `n1 = 1` ne sont pas des clauses. La
+session qui finissait n'a qu'une loi légale, et il garde. La session qui
+rappelait en a deux : ce passage prend « pas de second appel » et écarte.
+L'autre loi reste légale. Sans seconde décision, ou si aucune loi ne mord,
+rien n'est inventé.
+
 ```bash
 python3 scripts/write_rule.py
 ```

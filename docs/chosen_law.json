@@ -1,0 +1,24 @@
+{
+  "local_session": {
+    "point": 3,
+    "recorded_next": "session_end",
+    "law": "stop_after_result",
+    "legal": [
+      "stop_after_result"
+    ],
+    "free": "keep",
+    "free_event": "session_end"
+  },
+  "two_calls": {
+    "point": 3,
+    "recorded_next": "tool_call",
+    "law": "no_second_call",
+    "legal": [
+      "stop_after_result",
+      "no_second_call"
+    ],
+    "free": "discard",
+    "free_event": "tool_result"
+  },
+  "single_call": null
+}

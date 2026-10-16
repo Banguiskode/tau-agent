@@ -111,6 +111,32 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(two['free'], 'discard')
         self.assertEqual(two['free_event'], 'session_end')
         self.assertFalse(two['keep_possible'])
+        from write_rule import choose_law, law_equation
+        from synthesize_step import solve_assignments
+        equation = law_equation(events, 3, 'session_end')
+        clauses = set(equation.split(' && '))
+        self.assertNotIn('n0 = 1', clauses)
+        self.assertNotIn('n1 = 1', clauses)
+        self.assertNotIn('m = 0', clauses)
+        self.assertNotIn('m = 1', clauses)
+        self.assertNotIn('d3 = 1', clauses)
+        self.assertIn('n0 | n1 = 1', clauses)
+        session = choose_law(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(session['law'], 'stop_after_result')
+        self.assertEqual(session['legal'], ['stop_after_result'])
+        self.assertEqual(session['free'], 'keep')
+        two = choose_law(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
+        self.assertEqual(two['law'], 'no_second_call')
+        self.assertEqual(two['legal'], ['stop_after_result', 'no_second_call'])
+        self.assertEqual(two['free'], 'discard')
+        self.assertIsNone(choose_law(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
+        neither = [
+            {'type': 'session_start'},
+            {'type': 'assistant'},
+            {'type': 'assistant'},
+            {'type': 'session_end'},
+        ]
+        self.assertIsNone(solve_assignments(law_equation(neither, 1, 'session_end')))
 
 
 if __name__ == '__main__':
