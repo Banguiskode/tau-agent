@@ -13,6 +13,8 @@
     "fact": "always o3[t]:tau' = 0 && o2[t]:tau' = 0",
     "rule": "sometimes o3[t]:tau' != 0 || o2[t]:tau' != 0",
     "clause": "s2' != 0 || a3' != 0",
+    "printed_off": "a3' != 0",
+    "replacement_named": false,
     "free": "discard",
     "free_event": "tool_result",
     "legal_events": [
@@ -41,6 +43,8 @@
     "fact": "always o4[t]:tau' = 0 && o2[t]:tau' = 0",
     "rule": "sometimes o4[t]:tau' != 0 || o2[t]:tau' != 0",
     "clause": "c4' != 0 || a3' != 0",
+    "printed_off": "c4' != 0",
+    "replacement_named": false,
     "free": "discard",
     "free_event": "tool_result",
     "legal_events": [

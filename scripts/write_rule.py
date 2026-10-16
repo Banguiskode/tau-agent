@@ -574,6 +574,24 @@ def printed_fact(formula: str, timeout: int = 20) -> str | None:
     return None
 
 
+def normalized_clause(equation: str, timeout: int = 20) -> str | None:
+    """La clause nécessaire est la ligne `%1:`. Si elle recopie l'entrée, rien."""
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=f'n {equation}\nquit\n',
+        capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Syntax Error' in output or 'Failed to parse' in output:
+        return None
+    for line in output.splitlines():
+        if line.startswith('%1:'):
+            phrase = line.split('%1:', 1)[1].strip()
+            if phrase and phrase != equation:
+                return phrase
+    return None
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -623,6 +641,17 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         for bit in 'acsd'
         if solve_assignments(apply_eq + f' && {bit}{point} = 1', timeout) is not None
     ]
+    printed = normalized_clause(apply_eq, timeout)
+    recorded_off = f"{STREAM_BIT[STREAM[body[point]['type']]]}{point}' != 0"
+    if printed is None or recorded_off not in set(printed.split(' && ')):
+        return None
+    if recorded_off in set(apply_eq.split(' && ')):
+        return None
+    named_on = [
+        f"{bit}{point}' = 0"
+        for bit in 'acsd'
+        if f"{bit}{point}' = 0" in set(printed.split(' && '))
+    ]
     return {
         'kind': VIOLATIONS[kind],
         'point': point,
@@ -632,6 +661,8 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'fact': fact,
         'rule': written['rule'],
         'clause': clause,
+        'printed_off': recorded_off,
+        'replacement_named': len(named_on) == 1,
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'free_event': EVENT[chosen[0]],
         'legal_events': legal_events,

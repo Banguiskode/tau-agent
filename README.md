@@ -242,6 +242,9 @@ Ce n'est pas une phrase par sorte. Deux événements du même nom : rien
 n'est écrit. Le témoin libre n'est pas le seul remplaçant : l'ensemble
 légal est publié.
 
+`n` imprime la clause nécessaire. Elle dit que le bit enregistré s'éteint.
+Elle n'est pas dans l'entrée. Elle ne nomme pas le remplaçant. On n'en pose pas.
+
 ```bash
 python3 scripts/write_rule.py
 ```
