@@ -146,6 +146,15 @@ est épinglé, sans le texte. La loi nouvelle est `d3' & s2 = 0`, pas `d3 = 1`.
 Tau remplit la fin. La session enregistrée continuait par une décision.
 Le témoin, lui, s'arrête. Nier l'appel observé rend `no solution`.
 
+Deux points d'affilée, sur une session réelle à deux appels
+(`20260709_173642_12633c`, sans texte). Après le premier résultat, Tau
+remplit une décision, puis la fin. Le second appel enregistré n'est pas
+rejoué. Casser la chaîne (`a3 = 0`) rend `no solution`. 0,2 s.
+
+```bash
+python3 scripts/revise_session.py --chain
+```
+
 ```bash
 python3 scripts/revise_session.py
 ```

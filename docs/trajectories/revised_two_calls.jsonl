@@ -1,0 +1,6 @@
+{"type": "session_start"}
+{"type": "assistant"}
+{"type": "tool_call", "call_id": "call_0d68aef7005842e1b606625c", "tool": "tau_real_portfolio_gate"}
+{"type": "tool_result", "call_id": "call_0d68aef7005842e1b606625c", "ok": true}
+{"type": "assistant"}
+{"type": "session_end", "status": "PASS"}

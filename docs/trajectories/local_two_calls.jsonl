@@ -1,0 +1,8 @@
+{"type": "session_start"}
+{"type": "assistant"}
+{"type": "tool_call", "call_id": "call_0d68aef7005842e1b606625c", "tool": "read_file"}
+{"type": "tool_result", "call_id": "call_0d68aef7005842e1b606625c", "ok": true}
+{"type": "assistant"}
+{"type": "tool_call", "call_id": "call_96e508f436b5464182f91318", "tool": "read_file"}
+{"type": "tool_result", "call_id": "call_96e508f436b5464182f91318", "ok": true}
+{"type": "session_end", "status": "agent_close"}

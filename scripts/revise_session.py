@@ -43,6 +43,45 @@ def session_equation(events: list[dict], deny_call: bool = False) -> str:
     return ' && '.join(parts)
 
 
+def chain_equation(events: list[dict], deny_call: bool = False, break_chain: bool = False) -> str:
+    """Deux implications après le premier résultat. Les positions ne sont pas épinglées."""
+    body = [event for event in events if event['type'] != 'session_start']
+    result_at = next(index for index, event in enumerate(body) if event['type'] == 'tool_result')
+    prefix = body[:result_at + 1]
+    decision_at = result_at + 1
+    end_at = result_at + 2
+    parts: list[str] = []
+    for time in range(end_at + 1):
+        names = [f'{bit}{time}' for bit in BITS]
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+    for time, event in enumerate(prefix):
+        chosen = KIND[event['type']]
+        for bit in BITS:
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+    parts.append(f"a{decision_at}' & s{result_at} = 0")
+    parts.append(f"d{end_at}' & a{decision_at} = 0")
+    if deny_call:
+        call_at = next(index for index, event in enumerate(prefix) if event['type'] == 'tool_call')
+        parts.append(f'c{call_at} = 0')
+    if break_chain:
+        parts.append(f'a{decision_at} = 0')
+    return ' && '.join(parts)
+
+
+def revise_chain(path: Path, deny_call: bool = False, break_chain: bool = False, timeout: int = 20) -> list[dict] | None:
+    events = load_events(path)
+    body = [event for event in events if event['type'] != 'session_start']
+    result_at = next(index for index, event in enumerate(body) if event['type'] == 'tool_result')
+    witness = solve_assignments(chain_equation(events, deny_call, break_chain), timeout)
+    if witness is None:
+        return None
+    call = next(event for event in body if event['type'] == 'tool_call')
+    return events_from_window(witness, result_at + 3, call.get('call_id', 's1'))
+
+
 def revise_session(path: Path, deny_call: bool = False, timeout: int = 20) -> list[dict] | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -57,14 +96,20 @@ def revise_session(path: Path, deny_call: bool = False, timeout: int = 20) -> li
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
-    parser.add_argument('--output', type=Path, default=Path('docs/trajectories/revised_session.jsonl'))
+    parser.add_argument('--output', type=Path, default=None)
+    parser.add_argument('--chain', action='store_true')
     args = parser.parse_args()
-    events = revise_session(args.trace)
+    if args.chain:
+        events = revise_chain(args.trace if args.trace.name != 'local_session.jsonl' else Path('docs/trajectories/local_two_calls.jsonl'))
+        output = args.output or Path('docs/trajectories/revised_two_calls.jsonl')
+    else:
+        events = revise_session(args.trace)
+        output = args.output or Path('docs/trajectories/revised_session.jsonl')
     if events is None:
         raise SystemExit('no solution')
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in events))
-    print(json.dumps({'events': [event['type'] for event in events], 'output': str(args.output)}))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in events))
+    print(json.dumps({'events': [event['type'] for event in events], 'output': str(output)}))
     return 0
 
 

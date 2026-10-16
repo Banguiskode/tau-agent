@@ -37,5 +37,36 @@ class ReviseSessionExecutionTests(unittest.TestCase):
         self.assertIsNone(revise_session(TRACE, deny_call=True))
 
 
+TWO = Path(__file__).resolve().parents[1] / 'docs' / 'trajectories' / 'local_two_calls.jsonl'
+
+
+class ChainTests(unittest.TestCase):
+    def test_two_links_do_not_pin_the_filled_steps(self):
+        from revise_session import chain_equation
+        events = [json.loads(line) for line in TWO.read_text().splitlines() if line.strip()]
+        body = [event for event in events if event['type'] != 'session_start']
+        self.assertEqual(body[3]['type'], 'assistant')
+        self.assertEqual(body[4]['type'], 'tool_call')
+        clauses = set(chain_equation(events).split(' && '))
+        self.assertIn("a3' & s2 = 0", clauses)
+        self.assertIn("d4' & a3 = 0", clauses)
+        self.assertNotIn('a3 = 1', clauses)
+        self.assertNotIn('d4 = 1', clauses)
+        self.assertNotIn('c4 = 1', clauses)
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class ChainExecutionTests(unittest.TestCase):
+    def test_tau_fills_two_points_and_refuses_a_broken_chain(self):
+        from revise_session import revise_chain
+        trace = revise_chain(TWO)
+        self.assertEqual(
+            [event['type'] for event in trace],
+            ['session_start', 'assistant', 'tool_call', 'tool_result', 'assistant', 'session_end'],
+        )
+        self.assertIsNone(revise_chain(TWO, deny_call=True))
+        self.assertIsNone(revise_chain(TWO, break_chain=True))
+
+
 if __name__ == '__main__':
     unittest.main()
