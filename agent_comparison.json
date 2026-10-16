@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "agents": [
+    {
+      "agent": "hermes",
+      "trace": {
+        "valid": true,
+        "errors": [],
+        "tool_calls": 1,
+        "events": 6,
+        "status": "PASS"
+      },
+      "replay": {
+        "replayed": true,
+        "errors": [],
+        "checked_calls": 1,
+        "status": "PASS"
+      },
+      "status": "PASS"
+    },
+    {
+      "agent": "claude_code",
+      "trace": {
+        "valid": true,
+        "errors": [],
+        "tool_calls": 1,
+        "events": 6,
+        "status": "PASS"
+      },
+      "replay": {
+        "replayed": true,
+        "errors": [],
+        "checked_calls": 1,
+        "status": "PASS"
+      },
+      "status": "PASS"
+    }
+  ],
+  "tau": "PASS",
+  "summary": {
+    "agents": 2,
+    "pass": 2,
+    "fail": 0,
+    "all_pass": true
+  }
+}

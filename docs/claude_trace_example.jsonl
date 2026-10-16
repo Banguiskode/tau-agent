@@ -1,0 +1,5 @@
+{"type":"session_start","session_id":"claude-demo-001"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Je lance la vérification."},{"type":"tool_use","id":"c1","name":"tau_real_portfolio_gate","input":{}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"c1","content":"19 programmes, 80 cas"}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Vérification terminée."}]}}
+{"type":"session_end","status":"PASS"}

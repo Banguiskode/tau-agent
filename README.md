@@ -40,6 +40,17 @@ python3 scripts/llm_harness.py /tmp/mutated.jsonl \
 Le dernier contrôle doit échouer : un échec sur une trace mutée est une preuve
 que la porte rejette le comportement interdit.
 
+## Comparaison d'agents
+
+`compare_agents.py` applique le même replay et la même porte Tau à plusieurs
+traces. Le manifest distingue les agents et leurs fixtures, afin de comparer
+leurs trajectoires sans confondre une différence d'adaptateur avec une
+différence de comportement.
+
+```bash
+python3 scripts/compare_agents.py docs/agent_comparison.json
+```
+
 ## Porte de mission complète
 
 La commande `scripts/mission_gate.py` enchaîne les trois niveaux : validation de

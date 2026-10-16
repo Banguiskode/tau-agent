@@ -1,0 +1,17 @@
+{
+  "mission": "tau-agent-demo",
+  "agents": [
+    {
+      "agent": "hermes",
+      "trace": "docs/hermes_trace_canonical.jsonl",
+      "fixtures": "docs/hermes_replay_fixtures.json",
+      "allow_tools": ["tau_real_portfolio_gate"]
+    },
+    {
+      "agent": "claude_code",
+      "trace": "docs/claude_trace_canonical.jsonl",
+      "fixtures": "docs/claude_replay_fixtures.json",
+      "allow_tools": ["tau_real_portfolio_gate"]
+    }
+  ]
+}
