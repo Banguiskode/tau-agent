@@ -6,10 +6,11 @@ import argparse
 import json
 import sqlite3
 import tempfile
+import time
 from collections import Counter
 from pathlib import Path
 
-from emit_tau_trace import render_spec, slim_kernel
+from emit_tau_trace import order_packs, render_spec, render_streams, slim_kernel
 from llm_adapters import normalize_hermes_session
 from llm_harness import validate_trace
 from run_tau_gate import run
@@ -107,6 +108,24 @@ def judge_kernels(rows: list[dict], timeout: int, ceiling: int) -> None:
             obtained = run(path, timeout)
         row['kernel'] = obtained['obtained']
         row['wall_s'] = obtained['wall_s']
+        row['tau_claim'] = 'slim_all_links'
+
+
+def judge_packed(events: list[dict], timeout: int, pack: int = 24) -> dict:
+    packs = order_packs(events, pack=pack)
+    if not packs:
+        return {'kernel': 'SAT', 'wall_s': 0.0, 'packs': 0}
+    wall = 0.0
+    with tempfile.TemporaryDirectory(prefix='tau-pack-') as directory:
+        folder = Path(directory)
+        for index, (streams, conjuncts) in enumerate(packs):
+            path = folder / f'pack_{index}.tau'
+            path.write_text(render_streams(streams, conjuncts))
+            obtained = run(path, timeout)
+            wall += obtained['wall_s']
+            if obtained['obtained'] != 'SAT':
+                return {'kernel': obtained['obtained'], 'wall_s': round(wall, 3), 'packs': index + 1}
+    return {'kernel': 'SAT', 'wall_s': round(wall, 3), 'packs': len(packs)}
 
 
 def publish(rows: list[dict]) -> dict:
@@ -119,6 +138,10 @@ def publish(rows: list[dict]) -> dict:
             item['kernel_error'] = row['kernel_error']
         if 'kernel_reason' in row:
             item['kernel_reason'] = row['kernel_reason']
+        if 'tau_claim' in row:
+            item['tau_claim'] = row['tau_claim']
+        if 'packs' in row:
+            item['packs'] = row['packs']
         public.append(item)
     summary = summarize_census(public)
     return {**summary, 'rows': public, 'content': 'absent', 'allowlist': 'observed'}
@@ -130,14 +153,39 @@ def main() -> int:
     parser.add_argument('--output', type=Path, default=ROOT / 'local_traces.json')
     parser.add_argument('--tau', action='store_true')
     parser.add_argument('--ceiling', type=int, default=6)
+    parser.add_argument('--packed-ceiling', type=int, default=0)
     parser.add_argument('--timeout', type=int, default=20)
     args = parser.parse_args()
-    rows = load_sessions(args.db)
-    if args.tau:
-        judge_kernels(rows, args.timeout, args.ceiling)
+    if args.packed_ceiling and args.output.exists() and not args.tau:
+        rows = json.loads(args.output.read_text())['rows']
+    else:
+        rows = load_sessions(args.db)
+        if args.tau:
+            judge_kernels(rows, args.timeout, args.ceiling)
+    if args.packed_ceiling:
+        fresh = {row['session_id']: row for row in load_sessions(args.db)}
+        done = 0
+        target = [row for row in rows if row.get('harness') == 'PASS' and row.get('kernel') == 'NOT_RUN'
+                  and row['tool_calls'] <= args.packed_ceiling]
+        started = time.time()
+        for row in target:
+            verdict = judge_packed(fresh[row['session_id']]['events_data'], args.timeout)
+            row['kernel'] = verdict['kernel']
+            row['wall_s'] = verdict['wall_s']
+            row['packs'] = verdict['packs']
+            row['tau_claim'] = 'packed_order'
+            row.pop('kernel_reason', None)
+            done += 1
+            if done % 50 == 0 or done == len(target):
+                elapsed = time.time() - started
+                print(f'packed {done}/{len(target)} elapsed {elapsed:.0f}s', flush=True)
+                partial = publish(rows)
+                partial['packed_ceiling'] = args.packed_ceiling
+                args.output.write_text(json.dumps(partial, ensure_ascii=False, indent=2) + '\n')
     report = publish(rows)
     report['ceiling'] = args.ceiling
-    report['kernel_form'] = 'slim'
+    report['packed_ceiling'] = args.packed_ceiling
+    report['kernel_form'] = 'slim<=6; packed_order' if args.packed_ceiling else 'slim'
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({key: report[key] for key in ('status', 'sessions', 'harness_pass', 'harness_fail', 'kernel_sat', 'kernel_unsat', 'reasons')}))
     return 0 if report['harness_pass'] or report['harness_fail'] else 1

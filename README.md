@@ -110,13 +110,14 @@ sans cas `UNSAT`, n'est pas une preuve.
 
 `scripts/local_traces.py` lit les sessions Hermes du disque, sans texte et sans
 arguments. Sur 2039 sessions avec outils : 1743 passent le harness, 296
-échouent (221 appels sans résultat, 75 sans fin). Tau a jugé les 241 sessions
-d'au plus 6 appels : 241 `SAT`, 0 `UNSAT`. Au-delà, le solveur ne tient plus
-(12 appels : 1,6 s ; 24 appels : timeout). 1502 sessions restent non jugées,
-comptées, pas passées sous silence.
+échouent (221 appels sans résultat, 75 sans fin). Tau a jugé les 1743 sessions
+terminées et appariées : 1743 `SAT`, 0 `UNSAT`. Les 241 plus courtes portent
+tous les liens. Les 1502 autres portent le lien « décision avant appel »,
+renuméroté en t=1,2, y compris une session de 392 appels. Le coût suivait
+l'indice de temps, pas le nombre de liens.
 
 ```bash
-python3 scripts/local_traces.py --tau --ceiling 6
+python3 scripts/local_traces.py --packed-ceiling 48
 ```
 
 ## Porte Tau de transition, exemple manuel
@@ -143,8 +144,8 @@ elle n'exécute pas Tau, le binaire n'y est pas installé.
 - comparaison multi-agents sur la spec de chacun, pas sur un noyau partagé ;
 - lot de 7 trajectoires distinctes : le harness les accepte toutes, Tau en
   refuse 3 ;
-- traces locales : 2039 sessions, 1743 harness vert, Tau 241/241 `SAT`
-  jusqu'à 6 appels ; 1502 au-delà du plafond mesuré.
+- traces locales : 2039 sessions, 1743 harness vert, Tau 1743/1743 `SAT`
+  (241 liens complets, 1502 ordre renuméroté) ; 296 ouvertes non jugées.
 
 Le projet conserve volontairement une séparation stricte entre le runtime de
 l'agent, l'adaptation de sa trace et la vérification indépendante.

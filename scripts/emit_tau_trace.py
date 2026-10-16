@@ -73,6 +73,38 @@ def probe_pair(links: list[str]) -> tuple[str, str, str]:
     return link, antecedent, f'{stream}[{step}] = 0'
 
 
+def render_streams(streams: list[str], conjuncts: list[str]) -> str:
+    declarations = '\n'.join(f'{stream} : sbf := out console.' for stream in streams)
+    return f'{declarations}\nr {" && ".join(conjuncts)}\nq\nquit\n'
+
+
+def order_packs(events: list[dict], pack: int = 24) -> list[tuple[list[str], list[str]]]:
+    """Chaque appel est un couple (décision, appel) à t=1,2. L'indice global ne compte pas."""
+    last_assistant = 0
+    decided: list[bool] = []
+    for step, event in enumerate(events, start=1):
+        kind = event.get('type')
+        if kind == 'assistant':
+            last_assistant = step
+        elif kind == 'tool_call':
+            decided.append(last_assistant > 0)
+    packs = []
+    for start in range(0, len(decided), pack):
+        streams: list[str] = []
+        conjuncts: list[str] = []
+        for offset, ok in enumerate(decided[start:start + pack]):
+            assistant, call = f'a{offset}', f'c{offset}'
+            streams.extend((assistant, call))
+            if ok:
+                conjuncts.extend((f'{assistant}[1] = 1', f'{call}[2] = 1',
+                                  f'({call}[2] = 1 -> {assistant}[1] = 1)'))
+            else:
+                conjuncts.extend((f'([t < 1] -> {assistant}[t] = 0)', f'{call}[2] = 1',
+                                  f'({call}[2] = 1 -> {assistant}[0] = 1)'))
+        packs.append((streams, conjuncts))
+    return packs
+
+
 def slim_kernel(events: list[dict]) -> list[str]:
     """Faits positifs et liens. Un prédécesseur absent reste à l'indice 0."""
     facts = [fact for fact in closed_world(events) if fact.endswith(' = 1')]

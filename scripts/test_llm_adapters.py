@@ -75,6 +75,31 @@ class LLMAdapterTests(unittest.TestCase):
         self.assertNotIn('assistant[1] = 0', kernel)
         self.assertTrue(all(not fact.endswith(' = 0') or fact.startswith('([t < 1]') for fact in kernel))
 
+    def test_order_pack_renumbers_and_keeps_a_missing_decision(self):
+        from emit_tau_trace import order_packs
+        good = [
+            {'type': 'session_start'},
+            {'type': 'assistant'},
+            {'type': 'tool_call', 'call_id': 'c1'},
+            {'type': 'tool_result', 'call_id': 'c1'},
+            {'type': 'session_end'},
+        ]
+        packs = order_packs(good, pack=24)
+        self.assertEqual(len(packs), 1)
+        conjuncts = packs[0][1]
+        self.assertIn('(c0[2] = 1 -> a0[1] = 1)', conjuncts)
+        self.assertNotIn('[3]', ' '.join(conjuncts))
+        bad = [{'type': 'session_start'}, {'type': 'tool_call', 'call_id': 'c1'},
+               {'type': 'session_end'}]
+        bad_conjuncts = order_packs(bad)[0][1]
+        self.assertIn('(c0[2] = 1 -> a0[0] = 1)', bad_conjuncts)
+        self.assertIn('([t < 1] -> a0[t] = 0)', bad_conjuncts)
+        many = [{'type': 'session_start'}]
+        for i in range(25):
+            many.extend(({'type': 'assistant'}, {'type': 'tool_call', 'call_id': f'c{i}'}))
+        many.append({'type': 'session_end'})
+        self.assertEqual(len(order_packs(many, pack=24)), 2)
+
 
 if __name__ == '__main__':
     unittest.main()
