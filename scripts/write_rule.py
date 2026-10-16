@@ -12,6 +12,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from synthesize_step import solve_assignments
+
 RULE_RE = re.compile(r'o1\[0\] := (?!F\b|T\b)(.+)')
 
 
@@ -106,11 +108,70 @@ def write_rule(path: Path, fact: str | None = None, timeout: int = 20) -> dict |
     return {'fact': fact, 'rule': rule, 'script': script}
 
 
+EVENT = {'a': 'assistant', 'c': 'tool_call', 's': 'tool_result', 'd': 'session_end'}
+
+
+def second_decision(events: list[dict]) -> int | None:
+    body = [event for event in events if event['type'] != 'session_start']
+    decisions = [index for index, event in enumerate(body) if event['type'] == 'assistant']
+    if len(decisions) < 2:
+        return None
+    return decisions[1]
+
+
+def replacement_equation(events: list[dict], ban: int) -> str:
+    """Le bit interdit vient de la règle réinstallée. L'événement de remplacement n'est pas épinglé."""
+    body = [event for event in events if event['type'] != 'session_start']
+    prefix = body[:ban]
+    parts: list[str] = []
+    for time in range(ban + 1):
+        names = [f'{bit}{time}' for bit in 'acsd']
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+    kind = {'assistant': 'a', 'tool_call': 'c', 'tool_result': 's', 'session_end': 'd'}
+    for time, event in enumerate(prefix):
+        chosen = kind[event['type']]
+        for bit in 'acsd':
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+    parts.append(f'a{ban} = 0')
+    return ' && '.join(parts)
+
+
+def replace_event(path: Path, timeout: int = 20) -> dict | None:
+    written = write_rule(path, timeout=timeout)
+    if written is None:
+        return None
+    installed = reinstall(written['rule'], timeout=timeout)
+    if installed is None:
+        return None
+    events = load_events(path)
+    ban = second_decision(events)
+    if ban is None or ban not in installed['off']:
+        return None
+    equation = replacement_equation(events, ban)
+    witness = solve_assignments(equation, timeout)
+    if witness is None:
+        return None
+    chosen = [bit for bit in 'acsd' if witness.get(f'{bit}{ban}') == 1]
+    if len(chosen) != 1:
+        raise RuntimeError(f'replacement is not one event: {chosen}')
+    return {
+        'point': ban,
+        'replacement': EVENT[chosen[0]],
+        'decision_still_possible': solve_assignments(
+            equation.replace(f' && a{ban} = 0', '') + f' && a{ban} = 1', timeout
+        ) is not None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
     parser.add_argument('--output', type=Path, default=Path('docs/written_rule.json'))
     parser.add_argument('--reinstall-output', type=Path, default=Path('docs/reinstalled_rule.json'))
+    parser.add_argument('--replacement-output', type=Path, default=Path('docs/replacement.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -118,15 +179,18 @@ def main() -> int:
     installed = reinstall(written['rule'])
     if installed is None:
         raise SystemExit('not reinstalled')
+    replaced = replace_event(args.trace)
+    if replaced is None:
+        raise SystemExit('no replacement')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
-    payload = {
+    args.reinstall_output.write_text(json.dumps({
         'rule': written['rule'],
         'updated': installed['updated'],
         'off': installed['off'],
-    }
-    args.reinstall_output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({**payload, 'output': str(args.reinstall_output)}))
+    }, ensure_ascii=False, indent=2) + '\n')
+    args.replacement_output.write_text(json.dumps(replaced, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({**replaced, 'output': str(args.replacement_output)}))
     return 0
 
 

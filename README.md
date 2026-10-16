@@ -189,6 +189,15 @@ retirée, la clause non. Tau la fusionne en `sometimes o2[t]:sbf' != 0`.
 Au pas 3, celui de la seconde décision, le bit vaut 0. Sans règle, rien
 n'est réinstallé.
 
+Tau choisit alors l'événement. L'équation interdit la décision, pas le
+remplaçant. Ce passage remplit un résultat. Sans l'interdiction, la
+décision enregistrée reste possible. Un trajet sans seconde décision
+n'a pas de remplaçant.
+
+```bash
+python3 scripts/write_rule.py
+```
+
 ```bash
 python3 scripts/revise_session.py
 ```

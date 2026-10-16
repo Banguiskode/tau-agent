@@ -42,6 +42,18 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertIn('sbf', installed['updated'])
         self.assertIn(3, installed['off'])
         self.assertIsNone(reinstall(None))
+        from write_rule import replace_event, replacement_equation
+        events = [json.loads(line) for line in (root / 'docs' / 'trajectories' / 'local_session.jsonl').read_text().splitlines() if line.strip()]
+        equation = replacement_equation(events, 3)
+        clauses = set(equation.split(' && '))
+        self.assertIn('a3 = 0', clauses)
+        self.assertNotIn('s3 = 1', clauses)
+        self.assertNotIn('d3 = 1', clauses)
+        replaced = replace_event(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(replaced['point'], 3)
+        self.assertNotEqual(replaced['replacement'], 'assistant')
+        self.assertTrue(replaced['decision_still_possible'])
+        self.assertIsNone(replace_event(root / 'docs' / 'trajectories' / 'single_call.jsonl'))
 
 
 if __name__ == '__main__':
