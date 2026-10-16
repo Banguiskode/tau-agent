@@ -133,6 +133,11 @@ Une proposition satisfiable qui contredit la spec en cours gagne.
 tombe avec elle : le pas d'après ne porte plus que `a = 0`. Le rapport
 écrit `exclusion_kept: false`. Ne pas dire que le reste a tenu.
 
+Pour garder l'exclusion, la répéter dans la même proposition.
+`a[t] = 0 &&` l'exclusion complète est accepté, l'ancienne loi tombe, et
+le pas d'après reste un seul événement avec `a = 0`. Le rapport écrit
+`exclusion_kept: true`. Sans cette répétition, elle ne tient pas.
+
 ```bash
 python3 scripts/revise_point.py
 ```

@@ -80,7 +80,7 @@ def revise(proposals: tuple[str, ...] = PROPOSALS, timeout: int = 30) -> dict:
     return {'steps': steps, 'proposals': len(proposals)}
 
 
-def law_status(steps: list[dict]) -> dict:
+def law_status(steps: list[dict], exclusion_marker: str = 'a[t]:sbf d[t]:sbf = 0') -> dict:
     """Une loi `a = 1` absente ensuite, remplacée par `a = 0`, est un override."""
     forced = False
     for step in steps:
@@ -93,7 +93,7 @@ def law_status(steps: list[dict]) -> dict:
         if forced and 'a[t]:sbf = 0' in spec and "a[t]:sbf' = 0" not in spec:
             return {
                 'kind': 'override',
-                'exclusion_kept': 'a[t]:sbf d[t]:sbf = 0' in spec,
+                'exclusion_kept': exclusion_marker in spec,
                 'updated': spec,
                 'step': step['step'],
             }
@@ -106,21 +106,34 @@ def override(timeout: int = 30) -> dict:
     return report
 
 
+KEEPING_PROPOSALS = (EXCLUSION, 'a[t] = 1', f'a[t] = 0 && {EXCLUSION}')
+KEPT_MARKER = 's[t]:sbf d[t]:sbf = 0'
+
+
+def revise_keeping(timeout: int = 30) -> dict:
+    report = revise(KEEPING_PROPOSALS, timeout)
+    report['override'] = law_status(report['steps'], KEPT_MARKER)
+    return report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, default=Path('docs/revision_report.json'))
     parser.add_argument('--override-output', type=Path, default=Path('docs/revision_override.json'))
+    parser.add_argument('--kept-output', type=Path, default=Path('docs/revision_kept.json'))
     args = parser.parse_args()
     refusal = revise()
     overridden = override()
+    kept = revise_keeping()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(refusal, ensure_ascii=False, indent=2) + '\n')
     args.override_output.write_text(json.dumps(overridden, ensure_ascii=False, indent=2) + '\n')
+    args.kept_output.write_text(json.dumps(kept, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({
         'refused': sum(1 for step in refusal['steps'] if step['u'] == 'F'),
-        'override': overridden['override']['kind'],
-        'exclusion_kept': overridden['override']['exclusion_kept'],
-        'output': str(args.override_output),
+        'override_exclusion_kept': overridden['override']['exclusion_kept'],
+        'restated_exclusion_kept': kept['override']['exclusion_kept'],
+        'output': str(args.kept_output),
     }))
     return 0
 

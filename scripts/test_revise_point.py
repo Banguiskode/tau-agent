@@ -102,5 +102,30 @@ class OverrideExecutionTests(unittest.TestCase):
         self.assertNotIn('c', after['bits'])
 
 
+class KeepingTests(unittest.TestCase):
+    def test_a_restated_pair_counts_as_kept(self):
+        from revise_point import law_status
+        steps = [
+            {'step': 1, 'accepted': True, 'updated': "always a[t]:sbf' = 0 && s[t]:sbf d[t]:sbf = 0"},
+            {'step': 2, 'accepted': True, 'updated': 'always a[t]:sbf = 0 && s[t]:sbf d[t]:sbf = 0'},
+        ]
+        status = law_status(steps, 's[t]:sbf d[t]:sbf = 0')
+        self.assertEqual(status['kind'], 'override')
+        self.assertTrue(status['exclusion_kept'])
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class KeepingExecutionTests(unittest.TestCase):
+    def test_restating_the_exclusion_keeps_one_event(self):
+        from revise_point import revise_keeping
+        report = revise_keeping()
+        self.assertEqual(report['override']['kind'], 'override')
+        self.assertTrue(report['override']['exclusion_kept'])
+        self.assertNotIn("a[t]:sbf' = 0", report['override']['updated'])
+        after = next(step for step in report['steps'] if step['step'] > report['override']['step'])
+        self.assertEqual(after['bits'].get('a'), 0)
+        self.assertTrue(after['one_hot'])
+
+
 if __name__ == '__main__':
     unittest.main()
