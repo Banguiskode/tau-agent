@@ -202,6 +202,11 @@ Une mission choisit parmi les trois. Elle interdit, elle n'épingle pas.
 pas de fin » laisse l'appel. « Pas d'appel et pas de fin » laisse le
 résultat. Interdire les trois rend `no solution`.
 
+Tau tire la mission du trajet. Le pas enregistré juste après est le fait.
+Les interdits ne sont pas épinglés. La session qui finit interdit l'appel
+et le résultat, et garde la fin. La session qui rappelle interdit le
+résultat et la fin, et garde l'appel.
+
 ```bash
 python3 scripts/write_rule.py
 ```

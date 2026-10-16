@@ -1,0 +1,24 @@
+{
+  "local_session": {
+    "point": 3,
+    "recorded_next": "session_end",
+    "banned": [
+      "tool_call",
+      "tool_result"
+    ],
+    "kept": [
+      "session_end"
+    ]
+  },
+  "two_calls": {
+    "point": 3,
+    "recorded_next": "tool_call",
+    "banned": [
+      "tool_result",
+      "session_end"
+    ],
+    "kept": [
+      "tool_call"
+    ]
+  }
+}

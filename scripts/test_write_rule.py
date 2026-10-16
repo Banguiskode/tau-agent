@@ -73,6 +73,19 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertEqual(imposed['chosen']['call'], 'tool_call')
         self.assertEqual(imposed['chosen']['result'], 'tool_result')
         self.assertIsNone(imposed['chosen']['none'])
+        from write_rule import draw_mission, drawn_equation
+        equation = drawn_equation(events, 3, 'session_end')
+        clauses = set(equation.split(' && '))
+        self.assertIn('d3 = 1', clauses)
+        self.assertNotIn('x0 = 1', clauses)
+        self.assertNotIn('x1 = 1', clauses)
+        self.assertNotIn('x2 = 1', clauses)
+        session = draw_mission(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(session['kept'], ['session_end'])
+        self.assertEqual(set(session['banned']), {'tool_call', 'tool_result'})
+        two = draw_mission(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
+        self.assertEqual(two['kept'], ['tool_call'])
+        self.assertEqual(set(two['banned']), {'tool_result', 'session_end'})
 
 
 if __name__ == '__main__':
