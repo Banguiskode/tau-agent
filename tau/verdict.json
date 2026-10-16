@@ -5,7 +5,7 @@
       "file": "agent_transition.tau",
       "obtained": "SAT",
       "returncode": 0,
-      "wall_s": 0.108,
+      "wall_s": 0.109,
       "expected": "SAT",
       "status": "PASS"
     },
@@ -13,7 +13,7 @@
       "file": "agent_transition_mutation.tau",
       "obtained": "UNSAT",
       "returncode": 0,
-      "wall_s": 0.072,
+      "wall_s": 0.073,
       "expected": "UNSAT",
       "status": "PASS"
     }
