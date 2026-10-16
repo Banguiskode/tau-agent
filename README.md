@@ -211,6 +211,10 @@ Tau décide s'il garde le pas enregistré. `m` n'est pas épinglé. Les deux
 choix sont possibles. Ce passage écarte le pas, et met un résultat. Garder
 la décision interdite est impossible.
 
+La raison est la loi déjà écrite : après un résultat, on s'arrête.
+`d3' & s2 = 0` n'épingle ni `m` ni la fin. La session qui finissait
+garde ce pas. La session qui rappelait l'écarte, et Tau met une fin.
+
 ```bash
 python3 scripts/write_rule.py
 ```

@@ -96,6 +96,21 @@ class WriteRuleExecutionTests(unittest.TestCase):
         self.assertTrue(decided['keep_possible'])
         self.assertTrue(decided['discard_possible'])
         self.assertFalse(decided['keep_decision'])
+        from write_rule import reasoned_keep, reason_equation
+        equation = reason_equation(events, 3, 'session_end')
+        clauses = set(equation.split(' && '))
+        self.assertIn("d3' & s2 = 0", clauses)
+        self.assertNotIn('m = 0', clauses)
+        self.assertNotIn('m = 1', clauses)
+        self.assertNotIn('d3 = 1', clauses)
+        session = reasoned_keep(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(session['free'], 'keep')
+        self.assertEqual(session['free_event'], 'session_end')
+        self.assertFalse(session['discard_possible'])
+        two = reasoned_keep(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
+        self.assertEqual(two['free'], 'discard')
+        self.assertEqual(two['free_event'], 'session_end')
+        self.assertFalse(two['keep_possible'])
 
 
 if __name__ == '__main__':

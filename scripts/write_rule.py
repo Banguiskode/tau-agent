@@ -312,6 +312,56 @@ def decide_keep(path: Path, timeout: int = 20) -> dict | None:
     }
 
 
+def reason_clause(events: list[dict], ban: int) -> str | None:
+    """La loi déjà écrite : après un résultat, on s'arrête."""
+    body = [event for event in events if event['type'] != 'session_start']
+    if ban == 0 or body[ban - 1]['type'] != 'tool_result':
+        return None
+    return f"d{ban}' & s{ban - 1} = 0"
+
+
+def reason_equation(events: list[dict], ban: int, next_type: str) -> str:
+    clause = reason_clause(events, ban)
+    if clause is None:
+        raise RuntimeError('no result before the point')
+    return keep_equation(events, ban, next_type) + ' && ' + clause
+
+
+def reasoned_keep(path: Path, timeout: int = 20) -> dict | None:
+    written = write_rule(path, timeout=timeout)
+    if written is None:
+        return None
+    installed = reinstall(written['rule'], timeout=timeout)
+    if installed is None:
+        return None
+    events = load_events(path)
+    ban = second_decision(events)
+    if ban is None or ban not in installed['off']:
+        return None
+    body = [event for event in events if event['type'] != 'session_start']
+    if ban + 1 >= len(body):
+        return None
+    clause = reason_clause(events, ban)
+    if clause is None:
+        return None
+    equation = reason_equation(events, ban, body[ban + 1]['type'])
+    free = solve_assignments(equation, timeout)
+    if free is None or free.get('m') not in (0, 1):
+        return None
+    chosen = [bit for bit in 'acsd' if free.get(f'{bit}{ban}') == 1]
+    if len(chosen) != 1:
+        raise RuntimeError(f'reasoned choice is not one event: {chosen}')
+    return {
+        'point': ban,
+        'recorded_next': body[ban + 1]['type'],
+        'reason': clause,
+        'free': 'keep' if free.get('m') == 1 else 'discard',
+        'free_event': EVENT[chosen[0]],
+        'keep_possible': solve_assignments(equation + ' && m = 1', timeout) is not None,
+        'discard_possible': solve_assignments(equation + ' && m = 0', timeout) is not None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
@@ -322,6 +372,7 @@ def main() -> int:
     parser.add_argument('--mission-output', type=Path, default=Path('docs/imposed.json'))
     parser.add_argument('--drawn-output', type=Path, default=Path('docs/drawn_mission.json'))
     parser.add_argument('--keep-output', type=Path, default=Path('docs/keep_decision.json'))
+    parser.add_argument('--reason-output', type=Path, default=Path('docs/reasoned_keep.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -350,6 +401,12 @@ def main() -> int:
     }
     if decided['local_session'] is None or decided['two_calls'] is None:
         raise SystemExit('keep not decided')
+    reasoned = {
+        'local_session': reasoned_keep(Path('docs/trajectories/local_session.jsonl')),
+        'two_calls': reasoned_keep(Path('docs/trajectories/local_two_calls.jsonl')),
+    }
+    if reasoned['local_session'] is None or reasoned['two_calls'] is None:
+        raise SystemExit('reason not applied')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
     args.reinstall_output.write_text(json.dumps({
@@ -362,7 +419,8 @@ def main() -> int:
     args.mission_output.write_text(json.dumps(imposed, ensure_ascii=False, indent=2) + '\n')
     args.drawn_output.write_text(json.dumps(drawn, ensure_ascii=False, indent=2) + '\n')
     args.keep_output.write_text(json.dumps(decided, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({'keep': decided, 'output': str(args.keep_output)}))
+    args.reason_output.write_text(json.dumps(reasoned, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'reason': reasoned, 'output': str(args.reason_output)}))
     return 0
 
 
