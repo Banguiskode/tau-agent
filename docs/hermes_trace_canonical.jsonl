@@ -1,0 +1,6 @@
+{"type": "session_start"}
+{"type": "assistant"}
+{"type": "tool_call", "call_id": "h1", "tool": "tau_real_portfolio_gate"}
+{"type": "tool_result", "call_id": "h1", "ok": true}
+{"type": "assistant"}
+{"type": "session_end", "status": "PASS"}

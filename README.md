@@ -40,6 +40,21 @@ python3 scripts/llm_harness.py /tmp/mutated.jsonl \
 Le dernier contrôle doit échouer : un échec sur une trace mutée est une preuve
 que la porte rejette le comportement interdit.
 
+## Porte de mission complète
+
+La commande `scripts/mission_gate.py` enchaîne les trois niveaux : validation de
+trace, replay déterministe, puis porte Tau. Elle ne lance Tau que si les deux
+premières portes sont vertes.
+
+```bash
+python3 scripts/mission_gate.py docs/hermes_trace_canonical.jsonl \
+  docs/hermes_replay_fixtures.json \
+  --allow-tool tau_real_portfolio_gate
+```
+
+Le verdict est écrit dans `mission_verdict.json`. Un seul échec bloque la
+mission et indique la couche fautive.
+
 ## Porte Tau de transition
 
 Le noyau `tau/agent_transition.tau` encode une trajectoire minimale : réponse de
