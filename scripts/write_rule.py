@@ -186,6 +186,47 @@ def legal_replacements(path: Path, timeout: int = 20) -> dict | None:
     return {'point': ban, 'legal': legal}
 
 
+MISSIONS = {
+    'end': ('c', 's'),
+    'call': ('s', 'd'),
+    'result': ('c', 'd'),
+    'none': ('c', 's', 'd'),
+}
+
+
+def mission_equation(events: list[dict], ban: int, mission: str) -> str:
+    """La mission interdit des événements. Elle n'épingle pas celui qui reste."""
+    if mission not in MISSIONS:
+        raise ValueError(f'unknown mission: {mission}')
+    base = replacement_equation(events, ban)
+    banned = ' && '.join(f'{bit}{ban} = 0' for bit in MISSIONS[mission])
+    return f'{base} && {banned}'
+
+
+def impose(path: Path, timeout: int = 20) -> dict | None:
+    written = write_rule(path, timeout=timeout)
+    if written is None:
+        return None
+    installed = reinstall(written['rule'], timeout=timeout)
+    if installed is None:
+        return None
+    events = load_events(path)
+    ban = second_decision(events)
+    if ban is None or ban not in installed['off']:
+        return None
+    chosen = {}
+    for mission in MISSIONS:
+        witness = solve_assignments(mission_equation(events, ban, mission), timeout)
+        if witness is None:
+            chosen[mission] = None
+            continue
+        bits = [bit for bit in 'acsd' if witness.get(f'{bit}{ban}') == 1]
+        if len(bits) != 1:
+            raise RuntimeError(f'{mission} is not one event: {bits}')
+        chosen[mission] = EVENT[bits[0]]
+    return {'point': ban, 'chosen': chosen}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--trace', type=Path, default=Path('docs/trajectories/local_session.jsonl'))
@@ -193,6 +234,7 @@ def main() -> int:
     parser.add_argument('--reinstall-output', type=Path, default=Path('docs/reinstalled_rule.json'))
     parser.add_argument('--replacement-output', type=Path, default=Path('docs/replacement.json'))
     parser.add_argument('--legal-output', type=Path, default=Path('docs/legal_replacements.json'))
+    parser.add_argument('--mission-output', type=Path, default=Path('docs/imposed.json'))
     args = parser.parse_args()
     written = write_rule(args.trace)
     if written is None:
@@ -206,6 +248,9 @@ def main() -> int:
     legal = legal_replacements(args.trace)
     if legal is None:
         raise SystemExit('no legal set')
+    imposed = impose(args.trace)
+    if imposed is None:
+        raise SystemExit('no mission')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'fact': written['fact'], 'rule': written['rule']}, ensure_ascii=False, indent=2) + '\n')
     args.reinstall_output.write_text(json.dumps({
@@ -215,7 +260,8 @@ def main() -> int:
     }, ensure_ascii=False, indent=2) + '\n')
     args.replacement_output.write_text(json.dumps(replaced, ensure_ascii=False, indent=2) + '\n')
     args.legal_output.write_text(json.dumps(legal, ensure_ascii=False, indent=2) + '\n')
-    print(json.dumps({**legal, 'output': str(args.legal_output)}))
+    args.mission_output.write_text(json.dumps(imposed, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({**imposed, 'output': str(args.mission_output)}))
     return 0
 
 

@@ -1,0 +1,9 @@
+{
+  "point": 3,
+  "chosen": {
+    "end": "session_end",
+    "call": "tool_call",
+    "result": "tool_result",
+    "none": null
+  }
+}

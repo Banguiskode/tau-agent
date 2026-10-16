@@ -197,6 +197,11 @@ n'a pas de remplaçant.
 Les trois autres événements sont légaux : appel, résultat, fin. La
 décision ne l'est pas. Un seul témoin n'est pas l'ensemble.
 
+Une mission choisit parmi les trois. Elle interdit, elle n'épingle pas.
+« Pas d'appel et pas de résultat » laisse la fin. « Pas de résultat et
+pas de fin » laisse l'appel. « Pas d'appel et pas de fin » laisse le
+résultat. Interdire les trois rend `no solution`.
+
 ```bash
 python3 scripts/write_rule.py
 ```

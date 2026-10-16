@@ -62,6 +62,17 @@ class WriteRuleExecutionTests(unittest.TestCase):
             {'tool_call', 'tool_result', 'session_end'},
         )
         self.assertNotIn('assistant', legal['legal'])
+        from write_rule import impose, mission_equation
+        equation = mission_equation(events, 3, 'end')
+        clauses = set(equation.split(' && '))
+        self.assertIn('c3 = 0', clauses)
+        self.assertIn('s3 = 0', clauses)
+        self.assertNotIn('d3 = 1', clauses)
+        imposed = impose(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(imposed['chosen']['end'], 'session_end')
+        self.assertEqual(imposed['chosen']['call'], 'tool_call')
+        self.assertEqual(imposed['chosen']['result'], 'tool_result')
+        self.assertIsNone(imposed['chosen']['none'])
 
 
 if __name__ == '__main__':
