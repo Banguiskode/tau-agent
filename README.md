@@ -207,6 +207,10 @@ Les interdits ne sont pas épinglés. La session qui finit interdit l'appel
 et le résultat, et garde la fin. La session qui rappelle interdit le
 résultat et la fin, et garde l'appel.
 
+Tau décide s'il garde le pas enregistré. `m` n'est pas épinglé. Les deux
+choix sont possibles. Ce passage écarte le pas, et met un résultat. Garder
+la décision interdite est impossible.
+
 ```bash
 python3 scripts/write_rule.py
 ```

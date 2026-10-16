@@ -1,0 +1,20 @@
+{
+  "local_session": {
+    "point": 3,
+    "recorded_next": "session_end",
+    "free": "discard",
+    "free_event": "tool_result",
+    "keep_possible": true,
+    "discard_possible": true,
+    "keep_decision": false
+  },
+  "two_calls": {
+    "point": 3,
+    "recorded_next": "tool_call",
+    "free": "discard",
+    "free_event": "tool_result",
+    "keep_possible": true,
+    "discard_possible": true,
+    "keep_decision": false
+  }
+}

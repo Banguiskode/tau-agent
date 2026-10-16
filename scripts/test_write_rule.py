@@ -86,6 +86,16 @@ class WriteRuleExecutionTests(unittest.TestCase):
         two = draw_mission(root / 'docs' / 'trajectories' / 'local_two_calls.jsonl')
         self.assertEqual(two['kept'], ['tool_call'])
         self.assertEqual(set(two['banned']), {'tool_result', 'session_end'})
+        from write_rule import decide_keep, keep_equation
+        equation = keep_equation(events, 3, 'session_end')
+        clauses = set(equation.split(' && '))
+        self.assertNotIn('m = 0', clauses)
+        self.assertNotIn('m = 1', clauses)
+        decided = decide_keep(root / 'docs' / 'trajectories' / 'local_session.jsonl')
+        self.assertEqual(decided['free'], 'discard')
+        self.assertTrue(decided['keep_possible'])
+        self.assertTrue(decided['discard_possible'])
+        self.assertFalse(decided['keep_decision'])
 
 
 if __name__ == '__main__':
