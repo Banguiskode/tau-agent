@@ -138,8 +138,16 @@ Pour garder l'exclusion, la répéter dans la même proposition.
 le pas d'après reste un seul événement avec `a = 0`. Le rapport écrit
 `exclusion_kept: true`. Sans cette répétition, elle ne tient pas.
 
+## Révision d'une session réelle
+
+`u` n'a pas gardé l'appel observé : le pin `c[1]` a été réécrit. Le chemin
+qui tient est un `solve`. Le préfixe de `docs/trajectories/local_session.jsonl`
+est épinglé, sans le texte. La loi nouvelle est `d3' & s2 = 0`, pas `d3 = 1`.
+Tau remplit la fin. La session enregistrée continuait par une décision.
+Le témoin, lui, s'arrête. Nier l'appel observé rend `no solution`.
+
 ```bash
-python3 scripts/revise_point.py
+python3 scripts/revise_session.py
 ```
 
 ## Lot de trajectoires
