@@ -74,5 +74,33 @@ class RevisePointExecutionTests(unittest.TestCase):
         self.assertEqual(after['bits'], {'a': 1, 'c': 0, 's': 0, 'd': 0})
 
 
+class OverrideTests(unittest.TestCase):
+    def test_a_dropped_law_is_an_override_not_a_kept_exclusion(self):
+        from revise_point import law_status
+        steps = [
+            {'step': 1, 'accepted': True, 'updated': "always a[t]:sbf' = 0 && a[t]:sbf d[t]:sbf = 0"},
+            {'step': 2, 'accepted': True, 'updated': 'always a[t]:sbf = 0'},
+            {'step': 3, 'accepted': False, 'updated': '', 'bits': {'a': 0}},
+        ]
+        status = law_status(steps)
+        self.assertEqual(status['kind'], 'override')
+        self.assertFalse(status['exclusion_kept'])
+        self.assertNotIn("a[t]:sbf' = 0", status['updated'])
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class OverrideExecutionTests(unittest.TestCase):
+    def test_a_satisfiable_contradiction_wins_and_drops_the_old_law(self):
+        from revise_point import override
+        report = override()
+        self.assertEqual(report['override']['kind'], 'override')
+        self.assertFalse(report['override']['exclusion_kept'])
+        self.assertNotIn("a[t]:sbf' = 0", report['override']['updated'])
+        self.assertIn('a[t]:sbf = 0', report['override']['updated'])
+        after = next(step for step in report['steps'] if step['step'] > report['override']['step'])
+        self.assertEqual(after['bits'].get('a'), 0)
+        self.assertNotIn('c', after['bits'])
+
+
 if __name__ == '__main__':
     unittest.main()

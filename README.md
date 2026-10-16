@@ -128,6 +128,15 @@ Mesuré : la contradiction `c[t] = 0 && c[t] = 1` est refusée, le pas reste
 un seul événement. `a[t] = 1` est fusionné. Les deux pas suivants sont la
 décision seule, les trois autres bits à 0.
 
+Une proposition satisfiable qui contredit la spec en cours gagne.
+`a[t] = 0` après `a[t] = 1` est accepté. L'ancienne loi tombe. L'exclusion
+tombe avec elle : le pas d'après ne porte plus que `a = 0`. Le rapport
+écrit `exclusion_kept: false`. Ne pas dire que le reste a tenu.
+
+```bash
+python3 scripts/revise_point.py
+```
+
 ## Lot de trajectoires
 
 Sept chemins, sept formes. Le harness Python les accepte tous. Tau en accepte

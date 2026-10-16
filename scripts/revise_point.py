@@ -2,8 +2,9 @@
 """Révision par point : le flux `u` fusionne ou refuse, le harness n'invente pas.
 
 Une proposition insatisfiable rend `u := F` et n'est pas appliquée. Une
-proposition satisfiable est fusionnée ; le pas suivant, pas le pas de la
-mise à jour, obéit à la loi nouvelle.
+proposition satisfiable qui ne contredit pas la spec est fusionnée. Une
+proposition satisfiable qui contredit la spec en cours gagne : l'ancienne
+loi tombe, et l'exclusion peut tomber avec elle. Le dire, ne pas le cacher.
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ EXCLUSION = ' && '.join((
     'a[t] | c[t] | s[t] | d[t] = 1',
 ))
 PROPOSALS = (EXCLUSION, 'c[t] = 0 && c[t] = 1', 'a[t] = 1')
+OVERRIDE_PROPOSALS = (EXCLUSION, 'a[t] = 1', 'a[t] = 0')
 STEP_RE = re.compile(r'Execution step: (\d+)')
 BIT_RE = re.compile(r'^([acsd])\[\d+\]\s*:=\s*([01])\s*$', re.M)
 U_RE = re.compile(r'^u\[\d+\]\s*:=\s*(.+?)\s*$', re.M)
@@ -78,18 +80,47 @@ def revise(proposals: tuple[str, ...] = PROPOSALS, timeout: int = 30) -> dict:
     return {'steps': steps, 'proposals': len(proposals)}
 
 
+def law_status(steps: list[dict]) -> dict:
+    """Une loi `a = 1` absente ensuite, remplacée par `a = 0`, est un override."""
+    forced = False
+    for step in steps:
+        spec = step.get('updated', '')
+        if not step.get('accepted'):
+            continue
+        if "a[t]:sbf' = 0" in spec:
+            forced = True
+            continue
+        if forced and 'a[t]:sbf = 0' in spec and "a[t]:sbf' = 0" not in spec:
+            return {
+                'kind': 'override',
+                'exclusion_kept': 'a[t]:sbf d[t]:sbf = 0' in spec,
+                'updated': spec,
+                'step': step['step'],
+            }
+    return {'kind': 'none', 'exclusion_kept': False, 'updated': '', 'step': None}
+
+
+def override(timeout: int = 30) -> dict:
+    report = revise(OVERRIDE_PROPOSALS, timeout)
+    report['override'] = law_status(report['steps'])
+    return report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, default=Path('docs/revision_report.json'))
+    parser.add_argument('--override-output', type=Path, default=Path('docs/revision_override.json'))
     args = parser.parse_args()
-    report = revise()
+    refusal = revise()
+    overridden = override()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+    args.output.write_text(json.dumps(refusal, ensure_ascii=False, indent=2) + '\n')
+    args.override_output.write_text(json.dumps(overridden, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({
-        'steps': len(report['steps']),
-        'accepted': sum(1 for step in report['steps'] if step['accepted']),
-        'refused': sum(1 for step in report['steps'] if step['u'] == 'F'),
-        'output': str(args.output),
+        'refused': sum(1 for step in refusal['steps'] if step['u'] == 'F'),
+        'override': overridden['override']['kind'],
+        'exclusion_kept': overridden['override']['exclusion_kept'],
+        'output': str(args.override_output),
     }))
     return 0
 
