@@ -1,0 +1,5 @@
+{"role":"user","content":"run verification"}
+{"role":"assistant","content":"checking","tool_calls":[{"id":"h1","type":"function","function":{"name":"tau_real_portfolio_gate","arguments":"{}"}}]}
+{"role":"tool","tool_call_id":"h1","content":"19 programmes, 80 cases"}
+{"role":"assistant","content":"verified"}
+{"event":"session_end","status":"PASS"}

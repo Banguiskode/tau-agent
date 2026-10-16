@@ -1,0 +1,6 @@
+{"type":"session_start","session_id":"demo-tau-001"}
+{"type":"assistant","content":"Je vérifie le portefeuille Tau."}
+{"type":"tool_call","tool":"tau_real_portfolio_gate","call_id":"c1"}
+{"type":"tool_result","call_id":"c1","ok":true,"summary":"19 programmes, 80 cas, 0 échec"}
+{"type":"assistant","content":"Le portefeuille est vérifié."}
+{"type":"session_end","status":"PASS"}
