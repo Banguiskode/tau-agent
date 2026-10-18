@@ -476,6 +476,7 @@ def apply_written_reason(path: Path, timeout: int = 20) -> dict | None:
 VIOLATIONS = {'v0': 'result_then_not_end', 'v1': 'second_call'}
 STREAM = {'assistant': 'o2', 'tool_result': 'o3', 'tool_call': 'o4', 'session_end': 'o5'}
 STREAM_BIT = {'o2': 'a', 'o3': 's', 'o4': 'c', 'o5': 'd'}
+BIT_STREAM = {bit: stream for stream, bit in STREAM_BIT.items()}
 
 
 def violation_equation(events: list[dict]) -> str:
@@ -647,6 +648,23 @@ def execute_printed(stream: str, step: int, timeout: int = 20) -> dict | None:
     return {'clause': clause, 'value': int(match.group(1))}
 
 
+def execute_on(stream: str, step: int, timeout: int = 20) -> dict | None:
+    """Le bit forcé allumé, à son indice. Les autres pas ne sont pas lus."""
+    clause = f"{stream}[{step}]' = 0"
+    script = f'{stream}:sbf := out console.\nrun {clause}\n# step\nq\nquit\n'
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=script, capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Error' in output or 'unsat' in output or f'{stream}[{step}]:sbf' not in output:
+        return None
+    match = re.search(rf'{stream}\[{step}\] := (\S+)', output)
+    if match is None or UNBOUND.fullmatch(match.group(1)) or match.group(1) not in ('0', '1'):
+        return None
+    return {'clause': clause, 'value': int(match.group(1))}
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -725,6 +743,24 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
     fixed = execute_printed(bound, point, timeout)
     if fixed is None:
         return None
+    reason = reason_clause(events, point)
+    elected = None
+    elected_value = None
+    event = None
+    if reason is not None:
+        printed_reason = normalized_clause(f'{apply_eq} && {reason}', timeout)
+        ons = [
+            f"{bit}{point}' = 0"
+            for bit in 'acsd'
+            if printed_reason and f"{bit}{point}' = 0" in set(printed_reason.split(' && '))
+        ]
+        if len(ons) == 1 and ons[0] not in set(apply_eq.split(' && ')):
+            bit = ons[0][0]
+            ran = execute_on(BIT_STREAM[bit], point, timeout)
+            if ran is not None and ran['value'] == 1:
+                elected = ons[0]
+                elected_value = ran['value']
+                event = EVENT[bit]
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -748,7 +784,10 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'later_off': later_off,
         'point_clause': fixed['clause'],
         'point_fixed': fixed['value'],
-        'event': None,
+        'reason': reason,
+        'elected': elected,
+        'elected_value': elected_value,
+        'event': event,
         'model': EVENT[chosen[0]],
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'legal_events': legal_events,

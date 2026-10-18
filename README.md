@@ -257,6 +257,12 @@ La clause que `n` a imprimée, exécutée à son indice, fixe le bit.
 `o2[3]' != 0` rend 0. `o4[4]' != 0` rend 0. Ce n'est pas un `sometimes`.
 Les autres zéros ne sont pas lus. L'événement n'est toujours pas écrit.
 
+La loi déjà écrite, jointe à cette clause, fait imprimer `d3' = 0`.
+On n'a pas épinglé la fin. À son indice, ce bit vaut 1. L'événement est
+une fin. Le modèle du solveur reste un résultat : on ne le copie pas.
+Sur l'autre trajet, le pas d'avant n'est pas un résultat. La loi ne
+s'applique pas. Rien n'est écrit.
+
 ```bash
 python3 scripts/write_rule.py
 ```
