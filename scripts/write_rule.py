@@ -320,6 +320,19 @@ def reason_clause(events: list[dict], ban: int) -> str | None:
     return f"d{ban}' & s{ban - 1} = 0"
 
 
+def chain_clause(events: list[dict], point: int) -> str | None:
+    """Le second maillon déjà écrit. Il n'épingle pas la fin."""
+    body = [event for event in events if event['type'] != 'session_start']
+    result_at = next((index for index, event in enumerate(body) if event['type'] == 'tool_result'), None)
+    if result_at is None:
+        return None
+    decision_at = result_at + 1
+    end_at = result_at + 2
+    if end_at != point or decision_at >= len(body):
+        return None
+    return f"d{end_at}' & a{decision_at} = 0"
+
+
 def reason_equation(events: list[dict], ban: int, next_type: str) -> str:
     clause = reason_clause(events, ban)
     if clause is None:
@@ -938,6 +951,21 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
                 elected = ons[0]
                 elected_value = ran['value']
                 event = EVENT[bit]
+    chain = None if event is not None else chain_clause(events, point)
+    if event is None and chain is not None:
+        printed_chain = normalized_clause(f'{apply_eq} && {chain}', timeout)
+        ons = [
+            f"{bit}{point}' = 0"
+            for bit in 'acsd'
+            if printed_chain and f"{bit}{point}' = 0" in set(printed_chain.split(' && '))
+        ]
+        if len(ons) == 1 and ons[0] not in set(apply_eq.split(' && ')):
+            bit = ons[0][0]
+            ran = execute_on(BIT_STREAM[bit], point, timeout)
+            if ran is not None and ran['value'] == 1:
+                elected = ons[0]
+                elected_value = ran['value']
+                event = EVENT[bit]
     run_model = None
     run_legal = None
     if event is None:
@@ -989,6 +1017,7 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'point_clause': fixed['clause'],
         'point_fixed': fixed['value'],
         'reason': reason,
+        'chain': chain,
         'elected': elected,
         'elected_value': elected_value,
         'event': event,

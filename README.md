@@ -281,6 +281,11 @@ Sur l'autre, elle en laisse deux. Le témoin n'est pas la décision.
 L'équation du point interdit de réviser l'appel en appel, et laisse
 les trois autres. Aucun n'est imprimé allumé.
 
+Le second maillon déjà écrit, `d4' & a3 = 0`, joint à la clause, fait
+imprimer `d4' = 0`. On n'a pas épinglé la fin. À cet indice le bit vaut 1.
+L'événement est une fin. Le rejeu n'est pas clos : l'autre violation, au
+pas 3, reste. On ne dit pas que le trajet est fini.
+
 ```bash
 python3 scripts/write_rule.py
 ```

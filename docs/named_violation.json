@@ -40,6 +40,7 @@
     "point_clause": "o2[3]' != 0",
     "point_fixed": 0,
     "reason": "d3' & s2 = 0",
+    "chain": null,
     "elected": "d3' = 0",
     "elected_value": 1,
     "event": "session_end",
@@ -162,19 +163,39 @@
     "point_clause": "o4[4]' != 0",
     "point_fixed": 0,
     "reason": null,
-    "elected": null,
-    "elected_value": null,
-    "event": null,
-    "run_model": "session_end",
-    "run_legal": [
-      "assistant",
-      "tool_result",
-      "session_end"
+    "chain": "d4' & a3 = 0",
+    "elected": "d4' = 0",
+    "elected_value": 1,
+    "event": "session_end",
+    "run_model": null,
+    "run_legal": null,
+    "revised": [
+      {
+        "type": "session_start"
+      },
+      {
+        "type": "assistant"
+      },
+      {
+        "type": "tool_call",
+        "call_id": "call_0d68aef7005842e1b606625c",
+        "tool": "read_file"
+      },
+      {
+        "type": "tool_result",
+        "call_id": "call_0d68aef7005842e1b606625c",
+        "ok": true
+      },
+      {
+        "type": "assistant"
+      },
+      {
+        "type": "session_end"
+      }
     ],
-    "revised": null,
-    "closed": null,
-    "empty_possible": true,
-    "empty_forced": false,
+    "closed": false,
+    "empty_possible": null,
+    "empty_forced": null,
     "model": "tool_result",
     "free": "discard",
     "legal_events": [
