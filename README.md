@@ -272,6 +272,10 @@ Ce pas, rejoué, n'est plus une violation. Tau dit `no solution`.
 Sur l'autre trajet, enlever notre « un événement » laisse le pas vide
 possible, pas forcé. `n` n'éteint que l'appel. On n'efface pas le pas.
 
+L'autre violation du même trajet, au pas 3, a la loi. `n` imprime
+`d3' = 0`. Rejoué, `no solution`. Ce n'est pas le pas nommé. Le second
+appel reste ouvert. On ne substitue pas.
+
 ```bash
 python3 scripts/write_rule.py
 ```

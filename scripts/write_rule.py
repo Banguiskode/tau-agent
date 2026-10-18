@@ -731,6 +731,49 @@ def violation_closed(events: list[dict], timeout: int = 20) -> bool:
     return 'no solution' in output
 
 
+def fill_other(path: Path, events: list[dict], point: int, timeout: int = 20) -> dict | None:
+    """Une autre violation légale. Pas le pas que le témoin a nommé."""
+    observed = observation_formula(events, point)
+    if observed is None:
+        return None
+    formula, binding = observed
+    fact = printed_fact(formula, timeout)
+    if fact is None:
+        return None
+    written = write_rule(path, fact=fact, timeout=timeout)
+    if written is None or 'sometimes' not in written['rule']:
+        return None
+    clause = bind_printed(written['rule'], binding)
+    apply_eq = named_apply_equation(events, point, clause)
+    reason = reason_clause(events, point)
+    if reason is None:
+        return None
+    printed = normalized_clause(f'{apply_eq} && {reason}', timeout)
+    ons = [
+        f"{bit}{point}' = 0"
+        for bit in 'acsd'
+        if printed and f"{bit}{point}' = 0" in set(printed.split(' && '))
+    ]
+    if len(ons) != 1 or ons[0] in set(apply_eq.split(' && ')):
+        return None
+    bit = ons[0][0]
+    ran = execute_on(BIT_STREAM[bit], point, timeout)
+    if ran is None or ran['value'] != 1:
+        return None
+    revised = revised_prefix(events, point, EVENT[bit])
+    if revised is None or not violation_closed(revised, timeout):
+        return None
+    return {
+        'point': point,
+        'reason': reason,
+        'elected': ons[0],
+        'elected_value': ran['value'],
+        'event': EVENT[bit],
+        'revised': revised,
+        'closed': True,
+    }
+
+
 def empty_step(equation: str, point: int, timeout: int = 20) -> dict | None:
     """Retirer notre un-parmi-n. L'absence n'est forcée que si `n` éteint les quatre bits."""
     bits = [f'{bit}{point}' for bit in 'acsd']
@@ -869,6 +912,11 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
     vanished = empty_step(apply_eq, point, timeout) if event is None else None
     if event is None and vanished is None:
         return None
+    others = [
+        filled for item in legal
+        if item['point'] != point
+        and (filled := fill_other(path, events, item['point'], timeout)) is not None
+    ]
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -879,6 +927,7 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'point': point,
         'recorded': body[point]['type'],
         'legal': legal,
+        'others': others,
         'observed': formula,
         'fact': fact,
         'rule': written['rule'],
