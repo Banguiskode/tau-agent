@@ -718,6 +718,44 @@ def revised_prefix(events: list[dict], point: int, event_type: str | None) -> li
     return prefix + [{'type': event_type}]
 
 
+def violation_closed(events: list[dict], timeout: int = 20) -> bool:
+    """Le pas écrit n'est plus une violation seulement si Tau dit `no solution`."""
+    script = f'solve {violation_equation(events)}\nquit\n'
+    result = subprocess.run(
+        ['tau', '-X', '-q', '-c', 'false'],
+        input=script, capture_output=True, text=True, timeout=timeout,
+    )
+    output = result.stdout + result.stderr
+    if 'Syntax Error' in output:
+        raise RuntimeError(output[-500:])
+    return 'no solution' in output
+
+
+def empty_step(equation: str, point: int, timeout: int = 20) -> dict | None:
+    """Retirer notre un-parmi-n. L'absence n'est forcée que si `n` éteint les quatre bits."""
+    bits = [f'{bit}{point}' for bit in 'acsd']
+    drop = {f'{left} & {right} = 0' for index, left in enumerate(bits) for right in bits[index + 1:]}
+    drop.add(' | '.join(bits) + ' = 1')
+    loose = ' && '.join(part for part in equation.split(' && ') if part not in drop)
+    printed = normalized_clause(loose, timeout)
+    if printed is None:
+        return None
+    conjuncts = set(printed.split(' && '))
+    forced_off = [
+        f'{bit}{point}'
+        for bit in 'acsd'
+        if f'{bit}{point} = 0' in conjuncts or f"{bit}{point}' != 0" in conjuncts
+    ]
+    empty_possible = solve_assignments(
+        loose + ' && ' + ' && '.join(f'{bit} = 0' for bit in bits), timeout
+    ) is not None
+    return {
+        'forced_off': forced_off,
+        'empty_possible': empty_possible,
+        'empty_forced': empty_possible and len(forced_off) == 4,
+    }
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -826,6 +864,11 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         run_legal = [stream_of[name] for name in opened['legal']]
         if opened['forced']:
             event = run_model
+    revised = revised_prefix(events, point, event)
+    closed = violation_closed(revised, timeout) if revised is not None else None
+    vanished = empty_step(apply_eq, point, timeout) if event is None else None
+    if event is None and vanished is None:
+        return None
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -855,7 +898,10 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'event': event,
         'run_model': run_model,
         'run_legal': run_legal,
-        'revised': revised_prefix(events, point, event),
+        'revised': revised,
+        'closed': closed,
+        'empty_possible': None if vanished is None else vanished['empty_possible'],
+        'empty_forced': None if vanished is None else vanished['empty_forced'],
         'model': EVENT[chosen[0]],
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'legal_events': legal_events,

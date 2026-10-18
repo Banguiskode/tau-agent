@@ -268,6 +268,10 @@ ou le résultat marche aussi. Ce 1 est un modèle, pas l'événement.
 On n'écrit pas ce pas. Là où la loi a imprimé la fin, le pas écrit
 n'a que ce type : pas de statut, pas la suite du trajet.
 
+Ce pas, rejoué, n'est plus une violation. Tau dit `no solution`.
+Sur l'autre trajet, enlever notre « un événement » laisse le pas vide
+possible, pas forcé. `n` n'éteint que l'appel. On n'efface pas le pas.
+
 ```bash
 python3 scripts/write_rule.py
 ```

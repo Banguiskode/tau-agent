@@ -56,6 +56,9 @@
         "type": "session_end"
       }
     ],
+    "closed": true,
+    "empty_possible": null,
+    "empty_forced": null,
     "model": "tool_result",
     "free": "discard",
     "legal_events": [
@@ -111,6 +114,9 @@
       "session_end"
     ],
     "revised": null,
+    "closed": null,
+    "empty_possible": true,
+    "empty_forced": false,
     "model": "tool_result",
     "free": "discard",
     "legal_events": [
