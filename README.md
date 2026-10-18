@@ -263,6 +263,11 @@ une fin. Le modèle du solveur reste un résultat : on ne le copie pas.
 Sur l'autre trajet, le pas d'avant n'est pas un résultat. La loi ne
 s'applique pas. Rien n'est écrit.
 
+Sur ce trajet, l'exécution met pourtant une fin à 1. Forcer l'assistant
+ou le résultat marche aussi. Ce 1 est un modèle, pas l'événement.
+On n'écrit pas ce pas. Là où la loi a imprimé la fin, le pas écrit
+n'a que ce type : pas de statut, pas la suite du trajet.
+
 ```bash
 python3 scripts/write_rule.py
 ```

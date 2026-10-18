@@ -665,6 +665,59 @@ def execute_on(stream: str, step: int, timeout: int = 20) -> dict | None:
     return {'clause': clause, 'value': int(match.group(1))}
 
 
+def open_replacement(off_stream: str, step: int, candidates: list[str], timeout: int = 20) -> dict | None:
+    """Un 1 d'exécution n'est pas l'événement si un autre flux peut être allumé."""
+    if len(candidates) < 2:
+        return None
+    decls = ''.join(f'{name}:sbf := out console.\n' for name in [off_stream, *candidates])
+    parts = [f"{off_stream}[{step}]' != 0"]
+    for index, left in enumerate(candidates):
+        for right in candidates[index + 1:]:
+            parts.append(f'{left}[{step}] & {right}[{step}] = 0')
+    parts.append(' | '.join(f'{name}[{step}]' for name in candidates) + ' = 1')
+    base = ' && '.join(parts)
+
+    def once(extra: str = '') -> dict[str, int] | None:
+        script = decls + f'run {base}{extra}\n# step\nq\nquit\n'
+        result = subprocess.run(
+            ['tau', '-X', '-q', '-c', 'false'],
+            input=script, capture_output=True, text=True, timeout=timeout,
+        )
+        output = result.stdout + result.stderr
+        if 'Error' in output or 'unsat' in output:
+            return None
+        found = {}
+        for name in candidates:
+            match = re.search(rf'{name}\[{step}\] := (\S+)', output)
+            if match is None or match.group(1) not in ('0', '1'):
+                return None
+            found[name] = int(match.group(1))
+        return found
+
+    free = once()
+    if free is None:
+        return None
+    on = [name for name, value in free.items() if value == 1]
+    if len(on) != 1:
+        return None
+    legal = [
+        name for name in candidates
+        if (forced := once(f' && {name}[{step}] = 1')) is not None and forced.get(name) == 1
+    ]
+    if not legal:
+        return None
+    return {'model': on[0], 'legal': legal, 'forced': len(legal) == 1}
+
+
+def revised_prefix(events: list[dict], point: int, event_type: str | None) -> list[dict] | None:
+    """Le pas écrit n'a que le type imprimé. Pas de statut inventé, pas la suite."""
+    if event_type is None:
+        return None
+    body = [event for event in events if event['type'] != 'session_start']
+    prefix = [event for event in events if event['type'] == 'session_start'] + body[:point]
+    return prefix + [{'type': event_type}]
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -761,6 +814,18 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
                 elected = ons[0]
                 elected_value = ran['value']
                 event = EVENT[bit]
+    run_model = None
+    run_legal = None
+    if event is None:
+        stream_of = {stream: name for name, stream in STREAM.items()}
+        candidates = [STREAM[name] for name in legal_events if name != body[point]['type']]
+        opened = open_replacement(recorded_stream, point, candidates, timeout)
+        if opened is None:
+            return None
+        run_model = stream_of[opened['model']]
+        run_legal = [stream_of[name] for name in opened['legal']]
+        if opened['forced']:
+            event = run_model
     named_on = [
         f"{bit}{point}' = 0"
         for bit in 'acsd'
@@ -788,6 +853,9 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'elected': elected,
         'elected_value': elected_value,
         'event': event,
+        'run_model': run_model,
+        'run_legal': run_legal,
+        'revised': revised_prefix(events, point, event),
         'model': EVENT[chosen[0]],
         'free': 'keep' if free.get('m') == 1 else 'discard',
         'legal_events': legal_events,

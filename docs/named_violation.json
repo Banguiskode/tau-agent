@@ -33,6 +33,29 @@
     "elected": "d3' = 0",
     "elected_value": 1,
     "event": "session_end",
+    "run_model": null,
+    "run_legal": null,
+    "revised": [
+      {
+        "type": "session_start"
+      },
+      {
+        "type": "assistant"
+      },
+      {
+        "type": "tool_call",
+        "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0",
+        "tool": "terminal"
+      },
+      {
+        "type": "tool_result",
+        "call_id": "call-a65a81ab-ce7e-43d4-92c9-40ff04d70abc-0",
+        "ok": true
+      },
+      {
+        "type": "session_end"
+      }
+    ],
     "model": "tool_result",
     "free": "discard",
     "legal_events": [
@@ -81,6 +104,13 @@
     "elected": null,
     "elected_value": null,
     "event": null,
+    "run_model": "session_end",
+    "run_legal": [
+      "assistant",
+      "tool_result",
+      "session_end"
+    ],
+    "revised": null,
     "model": "tool_result",
     "free": "discard",
     "legal_events": [
