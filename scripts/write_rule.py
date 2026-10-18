@@ -799,6 +799,40 @@ def empty_step(equation: str, point: int, timeout: int = 20) -> dict | None:
     }
 
 
+def printed_pairs(equation: str, length: int, timeout: int = 20) -> list[dict] | None:
+    """Les paires que la clause imprimée n'interdit pas."""
+    printed = normalized_clause(equation, timeout)
+    if printed is None:
+        return None
+    conjuncts = set(printed.split(' && '))
+    pairs = []
+    for kind, label in VIOLATIONS.items():
+        for time in range(length):
+            if {f'p{time} {kind} = 0', f'{kind} p{time} = 0'} & conjuncts:
+                continue
+            pairs.append({'kind': label, 'point': time})
+    return pairs
+
+
+def revision_open(path: Path, point: int, timeout: int = 20) -> dict | None:
+    """Réviser l'appel en appel est interdit. Un autre bit n'est pas pour autant élu."""
+    from revise_session import point_equation, REV, REV_EVENT
+    equation = point_equation(load_events(path))
+    printed = normalized_clause(equation, timeout)
+    if printed is None:
+        return None
+    conjuncts = set(printed.split(' && '))
+    legal = [
+        REV_EVENT[bit]
+        for bit, name in REV.items()
+        if solve_assignments(equation + f' && {name}{point} = 1 && p{point} = 1', timeout) is not None
+    ]
+    if not legal:
+        return None
+    ons = [REV_EVENT[bit] for bit, name in REV.items() if f"{name}{point}' = 0" in conjuncts]
+    return {'legal': legal, 'forced': len(ons) == 1}
+
+
 def name_violation(path: Path, timeout: int = 20) -> dict | None:
     events = load_events(path)
     body = [event for event in events if event['type'] != 'session_start']
@@ -843,6 +877,15 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         if len(probe_points) != 1:
             raise RuntimeError(f'legal violation is not one point: {probe_points}')
         legal.append({'kind': VIOLATIONS[name], 'point': probe_points[0]})
+    remaining = printed_pairs(equation, len(body), timeout)
+    if remaining is None:
+        return None
+    decided = remaining == legal and len(remaining) == 1
+    if len(remaining) == 1 and remaining != legal:
+        return None
+    revision = None if decided else revision_open(path, point, timeout)
+    if not decided and revision is None:
+        return None
     legal_events = [
         EVENT[bit]
         for bit in 'acsd'
@@ -928,6 +971,10 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'recorded': body[point]['type'],
         'legal': legal,
         'others': others,
+        'printed_pairs': remaining,
+        'decided': decided,
+        'revision_legal': None if revision is None else revision['legal'],
+        'revision_forced': None if revision is None else revision['forced'],
         'observed': formula,
         'fact': fact,
         'rule': written['rule'],

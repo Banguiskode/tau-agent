@@ -276,6 +276,11 @@ L'autre violation du même trajet, au pas 3, a la loi. `n` imprime
 `d3' = 0`. Rejoué, `no solution`. Ce n'est pas le pas nommé. Le second
 appel reste ouvert. On ne substitue pas.
 
+La clause imprimée ne laisse qu'une paire sur la session qui finissait.
+Sur l'autre, elle en laisse deux. Le témoin n'est pas la décision.
+L'équation du point interdit de réviser l'appel en appel, et laisse
+les trois autres. Aucun n'est imprimé allumé.
+
 ```bash
 python3 scripts/write_rule.py
 ```

@@ -10,6 +10,15 @@
       }
     ],
     "others": [],
+    "printed_pairs": [
+      {
+        "kind": "result_then_not_end",
+        "point": 3
+      }
+    ],
+    "decided": true,
+    "revision_legal": null,
+    "revision_forced": null,
     "observed": "o2[t] = 1 && o3[t] = 1",
     "fact": "always o3[t]:tau' = 0 && o2[t]:tau' = 0",
     "rule": "sometimes o3[t]:tau' != 0 || o2[t]:tau' != 0",
@@ -115,6 +124,23 @@
         "closed": true
       }
     ],
+    "printed_pairs": [
+      {
+        "kind": "result_then_not_end",
+        "point": 3
+      },
+      {
+        "kind": "second_call",
+        "point": 4
+      }
+    ],
+    "decided": false,
+    "revision_legal": [
+      "assistant",
+      "tool_result",
+      "session_end"
+    ],
+    "revision_forced": false,
     "observed": "o4[t] = 1 && o2[t] = 1",
     "fact": "always o4[t]:tau' = 0 && o2[t]:tau' = 0",
     "rule": "sometimes o4[t]:tau' != 0 || o2[t]:tau' != 0",
