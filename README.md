@@ -3,6 +3,23 @@
 Harness indépendant pour agents LLM — Hermès, Claude Code et runtimes
 compatibles — avec replay déterministe, mutations négatives et portes Tau.
 
+## Agent Tau
+
+La partie principale n'est pas ce harness Python. C'est l'agent, écrit en Tau,
+à la façon d'Hermès ou de Jido, mais la politique est une spec.
+
+- Un signal est un flux d'entrée. Ici, un résultat d'outil.
+- Une directive est un flux de sortie. Ici, l'arrêt.
+- L'hôte substitue les chemins, lance `r`, lit le fichier. Il ne choisit pas.
+- Un bit que la loi n'a pas forcé n'est pas une directive.
+
+La première loi est déjà mesurée. Le signal `0 0 1 0` imprime l'arrêt
+`0 0 0 1`. Un appel au pas d'après est `unsat`.
+
+```bash
+python3 -c "from scripts.agent_step import stop_after_result; print(stop_after_result([0, 0, 1, 0]))"
+```
+
 ## Objectif
 
 Vérifier la trajectoire complète d'un agent, pas seulement son texte final :

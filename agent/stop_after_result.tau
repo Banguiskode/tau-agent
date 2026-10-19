@@ -1,0 +1,5 @@
+i:sbf := in file("SIGNAL").
+s:sbf := out file("DIRECTIVE").
+r s[0] = 0 && s[t] = i[t-1]
+q
+quit
