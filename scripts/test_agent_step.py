@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agent_step import gate, respond, step, stop_after_result
+from agent_step import gate, perform, respond, step, stop_after_result
 
 
 class AgentHostTests(unittest.TestCase):
@@ -70,3 +70,57 @@ class AgentRespondTests(unittest.TestCase):
 
     def test_the_other_tool_is_unsat(self):
         self.assertIn('unsat', gate('gate_wrong_tool.tau'))
+
+
+@unittest.skipUnless(shutil.which('tau'), 'tau binary required; CI does not execute Tau')
+class AgentLiveTests(unittest.TestCase):
+    def test_the_host_does_not_contain_the_live_law(self):
+        source = Path(__file__).resolve().parents[1].joinpath('scripts', 'agent_step.py').read_text()
+        self.assertNotIn('s[1] = i[1]', source)
+
+    def test_a_world_bit_of_one_prints_stop_after_the_call(self):
+        folder = Path(self._worlds('1', missing_b=True))
+        done = perform(1, 0, folder / 'a', folder / 'b')
+        self.assertEqual(done['printed'], {'call': 1, 'tool_a': 1, 'tool_b': 0, 'stop': 0})
+        self.assertEqual(done['ran'], 'a')
+        self.assertEqual(done['result'], 1)
+        self.assertEqual(done['next']['stop'], 1)
+        self.assertEqual(done['next']['call'], 0)
+        self.assertTrue(done['halted'])
+
+    def test_a_world_bit_of_zero_does_not_print_stop(self):
+        folder = Path(self._worlds('0', missing_b=True))
+        done = perform(1, 0, folder / 'a', folder / 'b')
+        self.assertEqual(done['result'], 0)
+        self.assertEqual(done['next']['stop'], 0)
+        self.assertEqual(done['next']['call'], 0)
+        self.assertFalse(done['halted'])
+
+    def test_the_other_world_is_not_opened(self):
+        folder = Path(self._worlds('1', which='b'))
+        done = perform(1, 1, folder / 'missing', folder / 'b')
+        self.assertEqual(done['ran'], 'b')
+        self.assertEqual(done['result'], 1)
+        self.assertTrue(done['halted'])
+
+    def test_no_request_opens_no_world(self):
+        missing = Path('/tmp/tau-agent-missing-world')
+        done = perform(0, 1, missing, missing)
+        self.assertIsNone(done['ran'])
+        self.assertIsNone(done['result'])
+        self.assertEqual(done['printed']['call'], 0)
+        self.assertFalse(done['halted'])
+
+    def test_a_world_that_is_not_a_bit_is_not_invented(self):
+        folder = Path(self._worlds('x', missing_b=True))
+        done = perform(1, 0, folder / 'a', folder / 'b')
+        self.assertIsNone(done['printed'])
+
+    def _worlds(self, bit: str, missing_b: bool = False, which: str = 'a') -> str:
+        import tempfile
+        folder = tempfile.mkdtemp()
+        target = Path(folder) / which
+        target.write_text(bit + '\n')
+        if not missing_b and which != 'b':
+            (Path(folder) / 'b').write_text('1\n')
+        return folder

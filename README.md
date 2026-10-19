@@ -22,9 +22,11 @@ L'hôte n'exécute que l'outil imprimé, puis renvoie le résultat comme signal.
 La ligne d'après dans le fichier n'est pas une directive. L'autre outil,
 ou un appel malgré le résultat, est `unsat`.
 
-```bash
-python3 -c "from scripts.agent_step import respond; print(respond(1, 0))"
-```
+Le même pas tient dans un seul `r`. Tau imprime l'appel, puis attend.
+L'hôte n'ouvre que le fichier de l'outil imprimé, et envoie ce bit.
+Un 1 imprime l'arrêt. Un 0 ne l'imprime pas, et ne relance pas l'appel.
+L'indice 2 du fichier n'est pas une directive. Les mondes sont des fichiers
+dont la première ligne est `0` ou `1`. Un autre texte n'est pas converti.
 
 ## Objectif
 

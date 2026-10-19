@@ -99,3 +99,140 @@ def respond(request: int, named: int, timeout: int = 20) -> dict:
         'next': nxt,
         'halted': nxt is not None and nxt['stop'] == 1 and nxt['call'] == 0,
     }
+
+
+def _world_bit(path: Path) -> int | None:
+    if not path.exists():
+        return None
+    lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    if not lines or lines[0] not in {'0', '1'}:
+        return None
+    return int(lines[0])
+
+
+def _index(path: Path, index: int) -> int | None:
+    if not path.exists():
+        return None
+    lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    if len(lines) <= index or lines[index] not in {'0', '1'}:
+        return None
+    return int(lines[index])
+
+
+def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int = 20) -> dict:
+    """Un seul r. On répond au résultat seulement après que l'appel est imprimé.
+    On n'ouvre que le fichier de l'outil imprimé. L'indice 2 n'est pas une directive."""
+    import threading
+    import time
+
+    law = (AGENT / 'live.tau').read_text()
+    empty = {'printed': None, 'ran': None, 'result': None, 'next': None, 'halted': False}
+    with tempfile.TemporaryDirectory() as tmp:
+        folder = Path(tmp)
+        paths = {
+            'REQUEST': folder / 'request.in',
+            'NAMED': folder / 'named.in',
+            'CALL': folder / 'call.out',
+            'TOOL_A': folder / 'tool_a.out',
+            'TOOL_B': folder / 'tool_b.out',
+            'STOP': folder / 'stop.out',
+        }
+        paths['REQUEST'].write_text(f'{request}\n0\n')
+        paths['NAMED'].write_text(f'{named}\n0\n')
+        script = law
+        for key, path in paths.items():
+            script = script.replace(key, str(path))
+        proc = subprocess.Popen(
+            ['tau', '-X', '-q', '-c', 'false'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        out: list[str] = []
+
+        def read() -> None:
+            assert proc.stdout
+            for line in proc.stdout:
+                out.append(line)
+
+        threading.Thread(target=read, daemon=True).start()
+        assert proc.stdin
+        try:
+            proc.stdin.write(script)
+            proc.stdin.flush()
+
+            def seen(marker: str) -> bool:
+                return any(marker in line for line in out)
+
+            deadline = time.time() + timeout
+            while time.time() < deadline and not seen('Execution step: 0'):
+                if seen('unsat') or seen('Syntax Error'):
+                    return empty
+                time.sleep(0.05)
+            if not seen('Execution step: 0'):
+                return empty
+            proc.stdin.write('0\n')
+            proc.stdin.flush()
+            while time.time() < deadline and not seen('Execution step: 1'):
+                if seen('unsat') or seen('Syntax Error'):
+                    return empty
+                time.sleep(0.05)
+            if not seen('Execution step: 1'):
+                return empty
+            printed = {
+                'call': _index(paths['CALL'], 0),
+                'tool_a': _index(paths['TOOL_A'], 0),
+                'tool_b': _index(paths['TOOL_B'], 0),
+                'stop': _index(paths['STOP'], 0),
+            }
+            if any(value is None for value in printed.values()):
+                return empty
+            ran = None
+            result = None
+            answer = 0
+            if printed['call'] == 1 and printed['tool_a'] == 1 and printed['tool_b'] == 0:
+                ran = 'a'
+                result = _world_bit(world_a)
+            elif printed['call'] == 1 and printed['tool_b'] == 1 and printed['tool_a'] == 0:
+                ran = 'b'
+                result = _world_bit(world_b)
+            if ran is not None:
+                if result is None:
+                    return empty
+                answer = result
+            proc.stdin.write(f'{answer}\n')
+            proc.stdin.flush()
+            while time.time() < deadline and not seen('Execution step: 2'):
+                if seen('unsat') or seen('Syntax Error'):
+                    return empty
+                time.sleep(0.05)
+            if not seen('Execution step: 2'):
+                return empty
+            nxt = {
+                'call': _index(paths['CALL'], 1),
+                'tool_a': _index(paths['TOOL_A'], 1),
+                'tool_b': _index(paths['TOOL_B'], 1),
+                'stop': _index(paths['STOP'], 1),
+            }
+            if any(value is None for value in nxt.values()):
+                return empty
+            proc.stdin.write('q\nquit\n')
+            proc.stdin.flush()
+            proc.wait(timeout=5)
+            return {
+                'printed': printed,
+                'ran': ran,
+                'result': result,
+                'next': nxt,
+                'halted': nxt['stop'] == 1 and nxt['call'] == 0,
+            }
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=2)
+            if proc.stdin:
+                proc.stdin.close()
+            if proc.stdout:
+                proc.stdout.close()
