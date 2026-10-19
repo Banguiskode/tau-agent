@@ -23,10 +23,12 @@ La ligne d'après dans le fichier n'est pas une directive. L'autre outil,
 ou un appel malgré le résultat, est `unsat`.
 
 Le même pas tient dans un seul `r`. Tau imprime l'appel, puis attend.
-L'hôte n'ouvre que le fichier de l'outil imprimé, et envoie ce bit.
+L'hôte lance le script de l'outil imprimé, pas l'autre, et envoie sa sortie.
 Un 1 imprime l'arrêt. Un 0 ne l'imprime pas, et ne relance pas l'appel.
-L'indice 2 du fichier n'est pas une directive. Les mondes sont des fichiers
-dont la première ligne est `0` ou `1`. Un autre texte n'est pas converti.
+L'indice 2 du fichier n'est pas une directive. L'outil travaille : il dit
+si un fichier est non vide, ou si un chemin est un dossier. L'hôte envoie
+la sortie du script, pas le texte du fichier. Une sortie qui n'est pas un
+bit n'est pas convertie.
 
 ## Objectif
 

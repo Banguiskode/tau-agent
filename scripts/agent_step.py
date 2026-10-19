@@ -101,10 +101,9 @@ def respond(request: int, named: int, timeout: int = 20) -> dict:
     }
 
 
-def _world_bit(path: Path) -> int | None:
-    if not path.exists():
-        return None
-    lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+def _effect_bit(command: list[str], path: Path, timeout: int = 5) -> int | None:
+    result = subprocess.run([*command, str(path)], capture_output=True, text=True, timeout=timeout)
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     if not lines or lines[0] not in {'0', '1'}:
         return None
     return int(lines[0])
@@ -119,11 +118,16 @@ def _index(path: Path, index: int) -> int | None:
     return int(lines[index])
 
 
-def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int = 20) -> dict:
-    """Un seul r. On répond au résultat seulement après que l'appel est imprimé.
-    On n'ouvre que le fichier de l'outil imprimé. L'indice 2 n'est pas une directive."""
+def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int = 20, effects: dict | None = None) -> dict:
+    """Un seul r. On lance l'outil imprimé, puis on envoie sa sortie.
+    On ne lance pas l'autre. Une sortie qui n'est pas un bit n'est pas convertie."""
     import threading
     import time
+
+    tools = effects or {
+        'a': ['python3', str(AGENT / 'tools' / 'file_nonempty.py')],
+        'b': ['python3', str(AGENT / 'tools' / 'path_is_dir.py')],
+    }
 
     law = (AGENT / 'live.tau').read_text()
     empty = {'printed': None, 'ran': None, 'result': None, 'next': None, 'halted': False}
@@ -194,10 +198,10 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             answer = 0
             if printed['call'] == 1 and printed['tool_a'] == 1 and printed['tool_b'] == 0:
                 ran = 'a'
-                result = _world_bit(world_a)
+                result = _effect_bit(tools['a'], world_a)
             elif printed['call'] == 1 and printed['tool_b'] == 1 and printed['tool_a'] == 0:
                 ran = 'b'
-                result = _world_bit(world_b)
+                result = _effect_bit(tools['b'], world_b)
             if ran is not None:
                 if result is None:
                     return empty

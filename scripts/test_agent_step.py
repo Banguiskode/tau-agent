@@ -77,9 +77,11 @@ class AgentLiveTests(unittest.TestCase):
     def test_the_host_does_not_contain_the_live_law(self):
         source = Path(__file__).resolve().parents[1].joinpath('scripts', 'agent_step.py').read_text()
         self.assertNotIn('s[1] = i[1]', source)
+        self.assertNotIn('isfile', source)
+        self.assertNotIn('getsize', source)
 
-    def test_a_world_bit_of_one_prints_stop_after_the_call(self):
-        folder = Path(self._worlds('1', missing_b=True))
+    def test_a_nonempty_file_prints_stop_after_the_call(self):
+        folder = Path(self._worlds('pas un bit', missing_b=True))
         done = perform(1, 0, folder / 'a', folder / 'b')
         self.assertEqual(done['printed'], {'call': 1, 'tool_a': 1, 'tool_b': 0, 'stop': 0})
         self.assertEqual(done['ran'], 'a')
@@ -88,22 +90,23 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['next']['call'], 0)
         self.assertTrue(done['halted'])
 
-    def test_a_world_bit_of_zero_does_not_print_stop(self):
-        folder = Path(self._worlds('0', missing_b=True))
-        done = perform(1, 0, folder / 'a', folder / 'b')
+    def test_a_missing_file_does_not_print_stop(self):
+        missing = Path('/tmp/tau-agent-missing-tool-a')
+        done = perform(1, 0, missing, missing)
+        self.assertEqual(done['ran'], 'a')
         self.assertEqual(done['result'], 0)
         self.assertEqual(done['next']['stop'], 0)
         self.assertEqual(done['next']['call'], 0)
         self.assertFalse(done['halted'])
 
-    def test_the_other_world_is_not_opened(self):
+    def test_the_other_tool_is_not_run(self):
         folder = Path(self._worlds('1', which='b'))
-        done = perform(1, 1, folder / 'missing', folder / 'b')
+        done = perform(1, 1, folder / 'missing', folder)
         self.assertEqual(done['ran'], 'b')
         self.assertEqual(done['result'], 1)
         self.assertTrue(done['halted'])
 
-    def test_no_request_opens_no_world(self):
+    def test_no_request_runs_no_tool(self):
         missing = Path('/tmp/tau-agent-missing-world')
         done = perform(0, 1, missing, missing)
         self.assertIsNone(done['ran'])
@@ -111,10 +114,17 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['printed']['call'], 0)
         self.assertFalse(done['halted'])
 
-    def test_a_world_that_is_not_a_bit_is_not_invented(self):
-        folder = Path(self._worlds('x', missing_b=True))
-        done = perform(1, 0, folder / 'a', folder / 'b')
+    def test_a_tool_stdout_that_is_not_a_bit_is_not_invented(self):
+        folder = Path(self._worlds('1', missing_b=True))
+        done = perform(1, 0, folder / 'a', folder / 'b', effects={'a': ['python3', '-c', 'print("no")'], 'b': ['python3', '-c', 'print(1)']})
         self.assertIsNone(done['printed'])
+
+    def test_the_bit_is_the_tool_stdout_not_the_file_text(self):
+        folder = Path(self._worlds('1', missing_b=True))
+        done = perform(1, 0, folder / 'a', folder / 'b', effects={'a': ['python3', '-c', 'print(0)'], 'b': ['python3', '-c', 'print(1)']})
+        self.assertEqual(done['result'], 0)
+        self.assertEqual(done['next']['stop'], 0)
+        self.assertFalse(done['halted'])
 
     def _worlds(self, bit: str, missing_b: bool = False, which: str = 'a') -> str:
         import tempfile
