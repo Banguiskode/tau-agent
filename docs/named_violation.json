@@ -41,6 +41,8 @@
     "point_fixed": 0,
     "reason": "d3' & s2 = 0",
     "chain": null,
+    "chain_printed": null,
+    "settled": null,
     "elected": "d3' = 0",
     "elected_value": 1,
     "event": "session_end",
@@ -164,9 +166,38 @@
     "point_fixed": 0,
     "reason": null,
     "chain": "d4' & a3 = 0",
-    "elected": "d4' = 0",
-    "elected_value": 1,
-    "event": "session_end",
+    "chain_printed": "d4' = 0",
+    "settled": {
+      "point": 3,
+      "event": "session_end",
+      "elected": "d3' = 0",
+      "assistant_off": "a3 = 0",
+      "later_forced": false,
+      "revised": [
+        {
+          "type": "session_start"
+        },
+        {
+          "type": "assistant"
+        },
+        {
+          "type": "tool_call",
+          "call_id": "call_0d68aef7005842e1b606625c",
+          "tool": "read_file"
+        },
+        {
+          "type": "tool_result",
+          "call_id": "call_0d68aef7005842e1b606625c",
+          "ok": true
+        },
+        {
+          "type": "session_end"
+        }
+      ]
+    },
+    "elected": null,
+    "elected_value": null,
+    "event": null,
     "run_model": null,
     "run_legal": null,
     "revised": [
@@ -187,13 +218,10 @@
         "ok": true
       },
       {
-        "type": "assistant"
-      },
-      {
         "type": "session_end"
       }
     ],
-    "closed": false,
+    "closed": true,
     "empty_possible": null,
     "empty_forced": null,
     "model": "tool_result",

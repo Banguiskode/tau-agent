@@ -333,6 +333,52 @@ def chain_clause(events: list[dict], point: int) -> str | None:
     return f"d{end_at}' & a{decision_at} = 0"
 
 
+def joint_laws(events: list[dict], later: int, timeout: int = 20) -> dict | None:
+    """Les deux lois, sans épingler le pas que la première révise."""
+    body = [event for event in events if event['type'] != 'session_start']
+    earlier = later - 1
+    result_at = later - 2
+    if result_at < 0 or body[result_at]['type'] != 'tool_result':
+        return None
+    kind = {'assistant': 'a', 'tool_call': 'c', 'tool_result': 's', 'session_end': 'd'}
+    parts: list[str] = []
+    for time in range(later + 1):
+        names = [f'{bit}{time}' for bit in 'acsd']
+        for index, left in enumerate(names):
+            for right in names[index + 1:]:
+                parts.append(f'{left} & {right} = 0')
+        parts.append(' | '.join(names) + ' = 1')
+    for time, event in enumerate(body[:result_at + 1]):
+        chosen = kind[event['type']]
+        for bit in 'acsd':
+            parts.append(f'{bit}{time} = {1 if bit == chosen else 0}')
+    if f'a{earlier} = 1' in parts or f'd{later} = 1' in parts:
+        return None
+    equation = ' && '.join(parts) + f" && d{earlier}' & s{result_at} = 0 && d{later}' & a{earlier} = 0"
+    printed = normalized_clause(equation, timeout)
+    if printed is None:
+        return None
+    conjuncts = set(printed.split(' && '))
+    if f"d{earlier}' = 0" not in conjuncts or f'a{earlier} = 0' not in conjuncts:
+        return None
+    if f"d{later}' = 0" in conjuncts:
+        return None
+    ran = execute_on(BIT_STREAM['d'], earlier, timeout)
+    if ran is None or ran['value'] != 1:
+        return None
+    revised = revised_prefix(events, earlier, 'session_end')
+    if revised is None or not violation_closed(revised, timeout):
+        return None
+    return {
+        'point': earlier,
+        'event': 'session_end',
+        'elected': f"d{earlier}' = 0",
+        'assistant_off': f'a{earlier} = 0',
+        'later_forced': False,
+        'revised': revised,
+    }
+
+
 def reason_equation(events: list[dict], ban: int, next_type: str) -> str:
     clause = reason_clause(events, ban)
     if clause is None:
@@ -966,9 +1012,18 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
                 elected = ons[0]
                 elected_value = ran['value']
                 event = EVENT[bit]
+    settled = None
+    chain_printed = None
+    if chain is not None and event is not None:
+        settled = joint_laws(events, point, timeout)
+        if settled is not None:
+            chain_printed = elected
+            elected = None
+            elected_value = None
+            event = None
     run_model = None
     run_legal = None
-    if event is None:
+    if event is None and settled is None:
         stream_of = {stream: name for name, stream in STREAM.items()}
         candidates = [STREAM[name] for name in legal_events if name != body[point]['type']]
         opened = open_replacement(recorded_stream, point, candidates, timeout)
@@ -978,10 +1033,14 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         run_legal = [stream_of[name] for name in opened['legal']]
         if opened['forced']:
             event = run_model
-    revised = revised_prefix(events, point, event)
-    closed = violation_closed(revised, timeout) if revised is not None else None
-    vanished = empty_step(apply_eq, point, timeout) if event is None else None
-    if event is None and vanished is None:
+    if settled is not None:
+        revised = settled['revised']
+        closed = True
+    else:
+        revised = revised_prefix(events, point, event)
+        closed = violation_closed(revised, timeout) if revised is not None else None
+    vanished = empty_step(apply_eq, point, timeout) if event is None and settled is None else None
+    if event is None and settled is None and vanished is None:
         return None
     others = [
         filled for item in legal
@@ -1018,6 +1077,8 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         'point_fixed': fixed['value'],
         'reason': reason,
         'chain': chain,
+        'chain_printed': chain_printed,
+        'settled': settled,
         'elected': elected,
         'elected_value': elected_value,
         'event': event,
