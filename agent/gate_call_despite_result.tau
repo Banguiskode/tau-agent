@@ -1,0 +1,7 @@
+q:sbf := out console.
+i:sbf := out console.
+c:sbf := out console.
+s:sbf := out console.
+r q[0] = 1 && i[0] = 1 && c[0] = 1 && s[0] = i[0] && c[0] = q[0] & i[0]'
+q
+quit

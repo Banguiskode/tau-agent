@@ -16,8 +16,14 @@ La partie principale n'est pas ce harness Python. C'est l'agent, écrit en Tau,
 La première loi est déjà mesurée. Le signal `0 0 1 0` imprime l'arrêt
 `0 0 0 1`. Un appel au pas d'après est `unsat`.
 
+Le pas de l'agent est une autre spec. Une demande sans résultat imprime
+un appel et un seul outil. Un résultat imprime l'arrêt, et éteint l'appel.
+L'hôte n'exécute que l'outil imprimé, puis renvoie le résultat comme signal.
+La ligne d'après dans le fichier n'est pas une directive. L'autre outil,
+ou un appel malgré le résultat, est `unsat`.
+
 ```bash
-python3 -c "from scripts.agent_step import stop_after_result; print(stop_after_result([0, 0, 1, 0]))"
+python3 -c "from scripts.agent_step import respond; print(respond(1, 0))"
 ```
 
 ## Objectif

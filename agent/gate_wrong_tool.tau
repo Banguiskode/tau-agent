@@ -1,0 +1,10 @@
+q:sbf := out console.
+i:sbf := out console.
+n:sbf := out console.
+c:sbf := out console.
+a:sbf := out console.
+b:sbf := out console.
+s:sbf := out console.
+r q[0] = 1 && i[0] = 0 && n[0] = 1 && a[0] = 1 && s[0] = i[0] && c[0] = q[0] & i[0]' && a[0] = c[0] & n[0]' && b[0] = c[0] & n[0]
+q
+quit
