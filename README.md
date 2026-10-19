@@ -289,6 +289,10 @@ pas 3 et `a3 = 0`. Elles n'impriment pas la fin au pas 4. Cette fin
 tardive ne tenait que par l'épingle que la première loi éteint. On ne
 l'écrit pas. Le rejeu de la fin tôt est clos.
 
+Le témoin qui nommait le second appel est après cette fin. Ce n'est
+plus la violation terminée. La violation terminée est celle que la
+clause jointe a close, au pas 3.
+
 ```bash
 python3 scripts/write_rule.py
 ```

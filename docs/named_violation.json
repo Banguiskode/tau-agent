@@ -3,6 +3,8 @@
     "kind": "result_then_not_end",
     "point": 3,
     "recorded": "assistant",
+    "past_end": false,
+    "witness": null,
     "legal": [
       {
         "kind": "result_then_not_end",
@@ -83,9 +85,20 @@
     "discard_possible": true
   },
   "two_calls": {
-    "kind": "second_call",
-    "point": 4,
-    "recorded": "tool_call",
+    "kind": "result_then_not_end",
+    "point": 3,
+    "recorded": "assistant",
+    "past_end": true,
+    "witness": {
+      "kind": "second_call",
+      "point": 4,
+      "recorded": "tool_call",
+      "observed": "o4[t] = 1 && o2[t] = 1",
+      "printed_off": "c4' != 0",
+      "point_clause": "o4[4]' != 0",
+      "fact": "always o4[t]:tau' = 0 && o2[t]:tau' = 0",
+      "clause": "c4' != 0 || a3' != 0"
+    },
     "legal": [
       {
         "kind": "result_then_not_end",
@@ -144,11 +157,11 @@
       "session_end"
     ],
     "revision_forced": false,
-    "observed": "o4[t] = 1 && o2[t] = 1",
-    "fact": "always o4[t]:tau' = 0 && o2[t]:tau' = 0",
-    "rule": "sometimes o4[t]:tau' != 0 || o2[t]:tau' != 0",
-    "clause": "c4' != 0 || a3' != 0",
-    "printed_off": "c4' != 0",
+    "observed": "o2[t] = 1 && o3[t] = 1",
+    "fact": null,
+    "rule": null,
+    "clause": null,
+    "printed_off": null,
     "replacement_named": false,
     "unbound": [
       "o4[1]"
@@ -162,7 +175,7 @@
       "o4[2]",
       "o4[3]"
     ],
-    "point_clause": "o4[4]' != 0",
+    "point_clause": null,
     "point_fixed": 0,
     "reason": null,
     "chain": "d4' & a3 = 0",

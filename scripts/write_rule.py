@@ -1052,28 +1052,52 @@ def name_violation(path: Path, timeout: int = 20) -> dict | None:
         for bit in 'acsd'
         if f"{bit}{point}' = 0" in set(printed.split(' && '))
     ]
+    past_end = settled is not None and settled['point'] < point
+    witness = None
+    completed_kind = VIOLATIONS[kind]
+    completed_point = point
+    completed_recorded = body[point]['type']
+    completed_observed = formula
+    if past_end:
+        witness = {
+            'kind': VIOLATIONS[kind],
+            'point': point,
+            'recorded': body[point]['type'],
+            'observed': formula,
+            'printed_off': recorded_off,
+            'point_clause': fixed['clause'],
+            'fact': fact,
+            'clause': clause,
+        }
+        completed = next(item for item in legal if item['point'] == settled['point'])
+        completed_kind = completed['kind']
+        completed_point = settled['point']
+        completed_recorded = body[settled['point']]['type']
+        completed_observed = observation_formula(events, settled['point'])[0]
     return {
-        'kind': VIOLATIONS[kind],
-        'point': point,
-        'recorded': body[point]['type'],
+        'kind': completed_kind,
+        'point': completed_point,
+        'recorded': completed_recorded,
+        'past_end': past_end,
+        'witness': witness,
         'legal': legal,
         'others': others,
         'printed_pairs': remaining,
         'decided': decided,
         'revision_legal': None if revision is None else revision['legal'],
         'revision_forced': None if revision is None else revision['forced'],
-        'observed': formula,
-        'fact': fact,
-        'rule': written['rule'],
-        'clause': clause,
-        'printed_off': recorded_off,
+        'observed': completed_observed,
+        'fact': None if past_end else fact,
+        'rule': None if past_end else written['rule'],
+        'clause': None if past_end else clause,
+        'printed_off': None if past_end else recorded_off,
         'replacement_named': len(named_on) == 1,
         'unbound': executed['unbound'],
         'replacement_executed': False,
         'pinned': previous[0],
         'still_unbound': still,
         'later_off': later_off,
-        'point_clause': fixed['clause'],
+        'point_clause': None if past_end else fixed['clause'],
         'point_fixed': fixed['value'],
         'reason': reason,
         'chain': chain,
