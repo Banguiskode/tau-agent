@@ -35,6 +35,9 @@ L'hôte ne recopie plus les faits. L'observateur les écrit, Tau les lit.
 Tau imprime la décision avant l'appel. L'hôte n'ajoute un assistant
 que si ce bit est allumé. La porte Tau accepte ce trajet. Sans cet
 arrêt, le harness le rejette encore.
+Après l'arrêt, l'hôte n'écrit pas un 0 pour finir le spec. Il quitte.
+Le `q` qui peut tomber dans le fichier n'est pas un bit. Un 0 plus loin
+n'est envoyé que si l'autre outil a vraiment imprimé un résultat.
 La lecture du disque est close. Tau lit un flux de bits, pas un fichier.
 Un texte donne des lettres, pas un bit. Un fichier vide et un dossier
 ne donnent rien, et on ne les distingue pas. Un fichier absent est une

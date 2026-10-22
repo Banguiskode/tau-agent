@@ -184,7 +184,7 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             'TOOL_B': folder / 'tool_b.out',
             'STOP': folder / 'stop.out',
         }
-        paths['REQUEST'].write_text('1\n1\n1\n0\n' if request else '0\n0\n0\n0\n')
+        paths['REQUEST'].write_text('1\n1\n1\n1\n' if request else '0\n0\n0\n0\n')
         paths['NAMED'].write_text(f'{named}\n0\n0\n0\n')
         script = law
         for key, path in paths.items():
@@ -254,11 +254,25 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             elif printed['call'] == 1 and printed['tool_b'] == 1 and printed['tool_a'] == 0:
                 ran = 'b'
                 result = _printed_tool('b', world_a, world_b, folder)
-            if ran is not None:
-                if result is None:
-                    return empty
-                answer = result
-            proc.stdin.write(f'{answer}\n')
+            if ran is None:
+                proc.stdin.write('q\nquit\n')
+                proc.stdin.flush()
+                proc.stdin.close()
+                proc.wait(timeout=5)
+                return {
+                    'printed': printed,
+                    'decided': decided,
+                    'ran': None,
+                    'result': None,
+                    'next': None,
+                    'followed': None,
+                    'followed_result': None,
+                    'after': None,
+                    'halted': False,
+                }
+            if result is None:
+                return empty
+            proc.stdin.write(f'{result}\n')
             proc.stdin.flush()
             while time.time() < deadline and not seen('Execution step: 3'):
                 if seen('unsat') or seen('Syntax Error'):
@@ -274,6 +288,22 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             }
             if any(value is None for value in nxt.values()):
                 return empty
+            if nxt['stop'] == 1 and nxt['call'] == 0:
+                proc.stdin.write('q\nquit\n')
+                proc.stdin.flush()
+                proc.stdin.close()
+                proc.wait(timeout=5)
+                return {
+                    'printed': printed,
+                    'decided': decided,
+                    'ran': ran,
+                    'result': result,
+                    'next': nxt,
+                    'followed': None,
+                    'followed_result': None,
+                    'after': None,
+                    'halted': True,
+                }
             followed = None
             followed_result = None
             second_answer = 0
@@ -283,11 +313,25 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             elif nxt['call'] == 1 and nxt['tool_b'] == 1 and nxt['tool_a'] == 0:
                 followed = 'b'
                 followed_result = _printed_tool('b', world_a, world_b, folder)
-            if followed is not None:
-                if followed_result is None:
+            if followed is None or followed_result is None:
+                if followed is not None:
                     return empty
-                second_answer = followed_result
-            proc.stdin.write(f'{second_answer}\n')
+                proc.stdin.write('q\nquit\n')
+                proc.stdin.flush()
+                proc.stdin.close()
+                proc.wait(timeout=5)
+                return {
+                    'printed': printed,
+                    'decided': decided,
+                    'ran': ran,
+                    'result': result,
+                    'next': nxt,
+                    'followed': None,
+                    'followed_result': None,
+                    'after': None,
+                    'halted': False,
+                }
+            proc.stdin.write(f'{followed_result}\n')
             proc.stdin.flush()
             while time.time() < deadline and not seen('Execution step: 4'):
                 if seen('unsat') or seen('Syntax Error'):
@@ -324,7 +368,9 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             if proc.poll() is None:
                 proc.kill()
                 proc.wait(timeout=2)
-            if proc.stdin:
-                proc.stdin.close()
-            if proc.stdout:
-                proc.stdout.close()
+            for stream in (proc.stdin, proc.stdout):
+                if stream:
+                    try:
+                        stream.close()
+                    except Exception:
+                        pass

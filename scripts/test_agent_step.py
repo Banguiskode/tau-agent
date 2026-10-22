@@ -92,6 +92,7 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['next']['stop'], 1)
         self.assertEqual(done['next']['call'], 0)
         self.assertIsNone(done['followed'])
+        self.assertIsNone(done['after'])
         self.assertTrue(done['halted'])
         trace = trace_of(done)
         report = validate_trace(trace, {'file_nonempty', 'path_is_dir'})
@@ -131,6 +132,7 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['ran'], 'b')
         self.assertEqual(done['result'], 1)
         self.assertIsNone(done['followed'])
+        self.assertIsNone(done['after'])
         self.assertTrue(done['halted'])
 
     def test_no_request_runs_no_tool(self):
