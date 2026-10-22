@@ -101,14 +101,6 @@ def respond(request: int, named: int, timeout: int = 20) -> dict:
     }
 
 
-def _observed_lines(command: list[str], path: Path, count: int, timeout: int = 5) -> list[int] | None:
-    result = subprocess.run([*command, str(path)], capture_output=True, text=True, timeout=timeout)
-    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    if len(lines) < count or any(line not in {'0', '1'} for line in lines[:count]):
-        return None
-    return [int(line) for line in lines[:count]]
-
-
 def _tau_bit(spec: Path, mapping: dict[str, Path], timeout: int = 20) -> int | None:
     script = spec.read_text()
     for key, path in mapping.items():
@@ -124,26 +116,42 @@ def _printed_tool(which: str, world_a: Path, world_b: Path, folder: Path) -> int
     if bit.exists():
         bit.unlink()
     if which == 'a':
-        facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_file.py')], world_a, 2)
-        if facts is None:
-            return None
         exists = folder / 'exists.in'
         size = folder / 'size.in'
-        exists.write_text(f'{facts[0]}\n')
-        size.write_text(f'{facts[1]}\n')
+        subprocess.run(
+            ['python3', str(AGENT / 'tools' / 'observe_file.py'), str(world_a), str(exists), str(size)],
+            check=False,
+        )
         return _tau_bit(AGENT / 'tools' / 'file_nonempty.tau', {
             'EXISTS': exists, 'SIZE': size, 'BIT': bit,
         })
     if which == 'b':
-        facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_dir.py')], world_b, 1)
-        if facts is None:
-            return None
         directory = folder / 'dir.in'
-        directory.write_text(f'{facts[0]}\n')
+        subprocess.run(
+            ['python3', str(AGENT / 'tools' / 'observe_dir.py'), str(world_b), str(directory)],
+            check=False,
+        )
         return _tau_bit(AGENT / 'tools' / 'path_is_dir.tau', {
             'DIR': directory, 'BIT': bit,
         })
     return None
+
+
+def trace_of(done: dict) -> list[dict] | None:
+    """Le trajet ne contient que les outils imprimés. Pas de fin si Tau n'a pas arrêté."""
+    if done.get('printed') is None:
+        return None
+    events = [{'type': 'session_start'}]
+    names = {'a': 'file_nonempty', 'b': 'path_is_dir'}
+    if done.get('ran') in names:
+        events.append({'type': 'tool_call', 'tool': names[done['ran']], 'call_id': 'c0'})
+        events.append({'type': 'tool_result', 'call_id': 'c0', 'ok': done.get('result') == 1})
+    if done.get('followed') in names:
+        events.append({'type': 'tool_call', 'tool': names[done['followed']], 'call_id': 'c1'})
+        events.append({'type': 'tool_result', 'call_id': 'c1', 'ok': done.get('followed_result') == 1})
+    if done.get('halted'):
+        events.append({'type': 'session_end'})
+    return events
 
 
 def _index(path: Path, index: int) -> int | None:

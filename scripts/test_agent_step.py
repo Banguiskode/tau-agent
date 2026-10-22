@@ -5,7 +5,8 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agent_step import gate, perform, respond, step, stop_after_result
+from agent_step import gate, perform, respond, step, stop_after_result, trace_of
+from llm_harness import validate_trace
 
 
 class AgentHostTests(unittest.TestCase):
@@ -92,6 +93,12 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['next']['call'], 0)
         self.assertIsNone(done['followed'])
         self.assertTrue(done['halted'])
+        trace = trace_of(done)
+        report = validate_trace(trace, {'file_nonempty', 'path_is_dir'})
+        self.assertTrue(report['valid'])
+        self.assertEqual(trace[1]['tool'], 'file_nonempty')
+        self.assertTrue(trace[2]['ok'])
+        self.assertEqual(trace[-1]['type'], 'session_end')
 
     def test_a_missing_file_does_not_print_stop(self):
         missing = Path('/tmp/tau-agent-missing-tool-a')
@@ -135,6 +142,13 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['after']['call'], 0)
         self.assertEqual(done['after']['stop'], 0)
         self.assertFalse(done['halted'])
+        trace = trace_of(done)
+        self.assertEqual([event['type'] for event in trace], [
+            'session_start', 'tool_call', 'tool_result', 'tool_call', 'tool_result',
+        ])
+        self.assertEqual(trace[3]['tool'], 'path_is_dir')
+        self.assertFalse(trace[2]['ok'])
+        self.assertFalse(validate_trace(trace, {'file_nonempty', 'path_is_dir'})['valid'])
 
     def test_a_forced_bit_against_a_missing_file_is_unsat(self):
         self.assertIn('unsat', gate('tools/gate_nonempty.tau'))

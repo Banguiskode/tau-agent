@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import os
 import sys
+from pathlib import Path
 
-path = sys.argv[1]
+path, exists_out, size_out = sys.argv[1:4]
 if os.path.isfile(path):
-    print(1)
-    print(1 if os.path.getsize(path) > 0 else 0)
+    exists = 1
+    size = 1 if os.path.getsize(path) > 0 else 0
 else:
-    print(0)
-    print(0)
+    exists = 0
+    size = 0
+Path(exists_out).write_text(f'{exists}\n')
+Path(size_out).write_text(f'{size}\n')

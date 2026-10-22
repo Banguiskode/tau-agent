@@ -31,9 +31,10 @@ ne l'écrit pas. Il n'y a pas de troisième appel. L'indice d'après n'est
 pas une directive. Un fichier de texte lu par Tau n'est pas un bit : on
 ne convertit pas ces lettres. L'indice 3, celui d'après la fin du spec,
 n'est pas une directive.
-L'hôte rapporte deux faits bruts, existence et taille, et n'en fait pas
-la conjonction. C'est la spec de l'outil qui imprime le bit. Un fichier
-vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
+L'hôte ne recopie plus les faits. L'observateur les écrit, Tau les lit.
+Le trajet ne contient que les outils imprimés. S'il n'y a pas d'arrêt,
+il n'y a pas de fin : le harness rejette ce trajet.
+Un fichier vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
 Une sortie qui n'est pas un bit n'est pas convertie.
 
 ## Objectif
