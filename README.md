@@ -35,7 +35,11 @@ L'hôte ne recopie plus les faits. L'observateur les écrit, Tau les lit.
 Tau imprime la décision avant l'appel. L'hôte n'ajoute un assistant
 que si ce bit est allumé. La porte Tau accepte ce trajet. Sans cet
 arrêt, le harness le rejette encore.
-Un fichier vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
+La lecture du disque est close. Tau lit un flux de bits, pas un fichier.
+Un texte donne des lettres, pas un bit. Un fichier vide et un dossier
+ne donnent rien, et on ne les distingue pas. Un fichier absent est une
+erreur d'ouverture, pas un 0. On ne convertit ni les lettres ni cette
+erreur. L'existence et la taille restent à l'observateur.
 Une sortie qui n'est pas un bit n'est pas convertie.
 
 ## Objectif
