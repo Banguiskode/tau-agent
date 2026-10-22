@@ -101,12 +101,22 @@ def respond(request: int, named: int, timeout: int = 20) -> dict:
     }
 
 
-def _effect_bit(command: list[str], path: Path, timeout: int = 5) -> int | None:
+def _observed_lines(command: list[str], path: Path, count: int, timeout: int = 5) -> list[int] | None:
     result = subprocess.run([*command, str(path)], capture_output=True, text=True, timeout=timeout)
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    if not lines or lines[0] not in {'0', '1'}:
+    if len(lines) < count or any(line not in {'0', '1'} for line in lines[:count]):
         return None
-    return int(lines[0])
+    return [int(line) for line in lines[:count]]
+
+
+def _tau_bit(spec: Path, mapping: dict[str, Path], timeout: int = 20) -> int | None:
+    script = spec.read_text()
+    for key, path in mapping.items():
+        script = script.replace(key, str(path))
+    text = run_tau(script, timeout)
+    if 'unsat' in text or 'Syntax Error' in text:
+        return None
+    return _index(mapping['BIT'], 0)
 
 
 def _index(path: Path, index: int) -> int | None:
@@ -118,16 +128,11 @@ def _index(path: Path, index: int) -> int | None:
     return int(lines[index])
 
 
-def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int = 20, effects: dict | None = None) -> dict:
-    """Un seul r. On lance l'outil imprimé, puis on envoie sa sortie.
-    On ne lance pas l'autre. Une sortie qui n'est pas un bit n'est pas convertie."""
+def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int = 20) -> dict:
+    """Un seul r. Ensuite, la spec de l'outil imprimé calcule le bit.
+    L'hôte rapporte les faits bruts. Il ne les conjoint pas."""
     import threading
     import time
-
-    tools = effects or {
-        'a': ['python3', str(AGENT / 'tools' / 'file_nonempty.py')],
-        'b': ['python3', str(AGENT / 'tools' / 'path_is_dir.py')],
-    }
 
     law = (AGENT / 'live.tau').read_text()
     empty = {'printed': None, 'ran': None, 'result': None, 'next': None, 'halted': False}
@@ -198,10 +203,28 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             answer = 0
             if printed['call'] == 1 and printed['tool_a'] == 1 and printed['tool_b'] == 0:
                 ran = 'a'
-                result = _effect_bit(tools['a'], world_a)
+                facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_file.py')], world_a, 2)
+                if facts is None:
+                    return empty
+                exists = folder / 'exists.in'
+                size = folder / 'size.in'
+                bit = folder / 'bit.out'
+                exists.write_text(f'{facts[0]}\n')
+                size.write_text(f'{facts[1]}\n')
+                result = _tau_bit(AGENT / 'tools' / 'file_nonempty.tau', {
+                    'EXISTS': exists, 'SIZE': size, 'BIT': bit,
+                })
             elif printed['call'] == 1 and printed['tool_b'] == 1 and printed['tool_a'] == 0:
                 ran = 'b'
-                result = _effect_bit(tools['b'], world_b)
+                facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_dir.py')], world_b, 1)
+                if facts is None:
+                    return empty
+                directory = folder / 'dir.in'
+                bit = folder / 'bit.out'
+                directory.write_text(f'{facts[0]}\n')
+                result = _tau_bit(AGENT / 'tools' / 'path_is_dir.tau', {
+                    'DIR': directory, 'BIT': bit,
+                })
             if ran is not None:
                 if result is None:
                     return empty

@@ -23,12 +23,13 @@ La ligne d'après dans le fichier n'est pas une directive. L'autre outil,
 ou un appel malgré le résultat, est `unsat`.
 
 Le même pas tient dans un seul `r`. Tau imprime l'appel, puis attend.
-L'hôte lance le script de l'outil imprimé, pas l'autre, et envoie sa sortie.
+L'hôte n'envoie pas le bit. Il rapporte les faits, et la spec de l'outil
+imprimé le calcule.
 Un 1 imprime l'arrêt. Un 0 ne l'imprime pas, et ne relance pas l'appel.
-L'indice 2 du fichier n'est pas une directive. L'outil travaille : il dit
-si un fichier est non vide, ou si un chemin est un dossier. L'hôte envoie
-la sortie du script, pas le texte du fichier. Une sortie qui n'est pas un
-bit n'est pas convertie.
+L'indice 2 du fichier n'est pas une directive. L'hôte rapporte deux faits bruts, existence et taille, et n'en fait pas
+la conjonction. C'est la spec de l'outil qui imprime le bit. Un fichier
+vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
+Une sortie qui n'est pas un bit n'est pas convertie.
 
 ## Objectif
 

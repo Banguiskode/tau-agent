@@ -1,0 +1,6 @@
+e:sbf := in file("EXISTS").
+z:sbf := in file("SIZE").
+o:sbf := out file("BIT").
+r o[0] = e[0] & z[0]
+q
+quit

@@ -1,0 +1,6 @@
+e:sbf := out console.
+z:sbf := out console.
+o:sbf := out console.
+r e[0] = 0 && z[0] = 1 && o[0] = 1 && o[0] = e[0] & z[0]
+q
+quit

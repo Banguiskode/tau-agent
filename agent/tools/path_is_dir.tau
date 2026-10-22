@@ -1,0 +1,5 @@
+d:sbf := in file("DIR").
+o:sbf := out file("BIT").
+r o[0] = d[0]
+q
+quit

@@ -79,6 +79,8 @@ class AgentLiveTests(unittest.TestCase):
         self.assertNotIn('s[1] = i[1]', source)
         self.assertNotIn('isfile', source)
         self.assertNotIn('getsize', source)
+        self.assertNotIn('e[0] & z[0]', source)
+        self.assertNotIn('facts[0] and facts[1]', source)
 
     def test_a_nonempty_file_prints_stop_after_the_call(self):
         folder = Path(self._worlds('pas un bit', missing_b=True))
@@ -114,17 +116,18 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['printed']['call'], 0)
         self.assertFalse(done['halted'])
 
-    def test_a_tool_stdout_that_is_not_a_bit_is_not_invented(self):
-        folder = Path(self._worlds('1', missing_b=True))
-        done = perform(1, 0, folder / 'a', folder / 'b', effects={'a': ['python3', '-c', 'print("no")'], 'b': ['python3', '-c', 'print(1)']})
-        self.assertIsNone(done['printed'])
-
-    def test_the_bit_is_the_tool_stdout_not_the_file_text(self):
-        folder = Path(self._worlds('1', missing_b=True))
-        done = perform(1, 0, folder / 'a', folder / 'b', effects={'a': ['python3', '-c', 'print(0)'], 'b': ['python3', '-c', 'print(1)']})
+    def test_an_empty_file_does_not_print_stop(self):
+        import tempfile
+        folder = Path(tempfile.mkdtemp())
+        (folder / 'a').write_text('')
+        done = perform(1, 0, folder / 'a', folder / 'missing')
+        self.assertEqual(done['ran'], 'a')
         self.assertEqual(done['result'], 0)
         self.assertEqual(done['next']['stop'], 0)
         self.assertFalse(done['halted'])
+
+    def test_a_forced_bit_against_a_missing_file_is_unsat(self):
+        self.assertIn('unsat', gate('tools/gate_nonempty.tau'))
 
     def _worlds(self, bit: str, missing_b: bool = False, which: str = 'a') -> str:
         import tempfile
