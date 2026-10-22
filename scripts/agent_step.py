@@ -143,6 +143,8 @@ def trace_of(done: dict) -> list[dict] | None:
         return None
     events = [{'type': 'session_start'}]
     names = {'a': 'file_nonempty', 'b': 'path_is_dir'}
+    if done.get('decided'):
+        events.append({'type': 'assistant'})
     if done.get('ran') in names:
         events.append({'type': 'tool_call', 'tool': names[done['ran']], 'call_id': 'c0'})
         events.append({'type': 'tool_result', 'call_id': 'c0', 'ok': done.get('result') == 1})
@@ -176,13 +178,14 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
         paths = {
             'REQUEST': folder / 'request.in',
             'NAMED': folder / 'named.in',
+            'DECIDE': folder / 'decide.out',
             'CALL': folder / 'call.out',
             'TOOL_A': folder / 'tool_a.out',
             'TOOL_B': folder / 'tool_b.out',
             'STOP': folder / 'stop.out',
         }
-        paths['REQUEST'].write_text('1\n1\n0\n' if request else '0\n0\n0\n')
-        paths['NAMED'].write_text(f'{named}\n0\n0\n')
+        paths['REQUEST'].write_text('1\n1\n1\n0\n' if request else '0\n0\n0\n0\n')
+        paths['NAMED'].write_text(f'{named}\n0\n0\n0\n')
         script = law
         for key, path in paths.items():
             script = script.replace(key, str(path))
@@ -225,11 +228,20 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
                 time.sleep(0.05)
             if not seen('Execution step: 1'):
                 return empty
+            decided = _index(paths['DECIDE'], 0) == 1
+            proc.stdin.write('0\n')
+            proc.stdin.flush()
+            while time.time() < deadline and not seen('Execution step: 2'):
+                if seen('unsat') or seen('Syntax Error'):
+                    return empty
+                time.sleep(0.05)
+            if not seen('Execution step: 2'):
+                return empty
             printed = {
-                'call': _index(paths['CALL'], 0),
-                'tool_a': _index(paths['TOOL_A'], 0),
-                'tool_b': _index(paths['TOOL_B'], 0),
-                'stop': _index(paths['STOP'], 0),
+                'call': _index(paths['CALL'], 1),
+                'tool_a': _index(paths['TOOL_A'], 1),
+                'tool_b': _index(paths['TOOL_B'], 1),
+                'stop': _index(paths['STOP'], 1),
             }
             if any(value is None for value in printed.values()):
                 return empty
@@ -248,17 +260,17 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
                 answer = result
             proc.stdin.write(f'{answer}\n')
             proc.stdin.flush()
-            while time.time() < deadline and not seen('Execution step: 2'):
+            while time.time() < deadline and not seen('Execution step: 3'):
                 if seen('unsat') or seen('Syntax Error'):
                     return empty
                 time.sleep(0.05)
-            if not seen('Execution step: 2'):
+            if not seen('Execution step: 3'):
                 return empty
             nxt = {
-                'call': _index(paths['CALL'], 1),
-                'tool_a': _index(paths['TOOL_A'], 1),
-                'tool_b': _index(paths['TOOL_B'], 1),
-                'stop': _index(paths['STOP'], 1),
+                'call': _index(paths['CALL'], 2),
+                'tool_a': _index(paths['TOOL_A'], 2),
+                'tool_b': _index(paths['TOOL_B'], 2),
+                'stop': _index(paths['STOP'], 2),
             }
             if any(value is None for value in nxt.values()):
                 return empty
@@ -277,17 +289,17 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
                 second_answer = followed_result
             proc.stdin.write(f'{second_answer}\n')
             proc.stdin.flush()
-            while time.time() < deadline and not seen('Execution step: 3'):
+            while time.time() < deadline and not seen('Execution step: 4'):
                 if seen('unsat') or seen('Syntax Error'):
                     return empty
                 time.sleep(0.05)
-            if not seen('Execution step: 3'):
+            if not seen('Execution step: 4'):
                 return empty
             after = {
-                'call': _index(paths['CALL'], 2),
-                'tool_a': _index(paths['TOOL_A'], 2),
-                'tool_b': _index(paths['TOOL_B'], 2),
-                'stop': _index(paths['STOP'], 2),
+                'call': _index(paths['CALL'], 3),
+                'tool_a': _index(paths['TOOL_A'], 3),
+                'tool_b': _index(paths['TOOL_B'], 3),
+                'stop': _index(paths['STOP'], 3),
             }
             if any(value is None for value in after.values()):
                 return empty
@@ -299,6 +311,7 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
                 halted = after['stop'] == 1 and after['call'] == 0
             return {
                 'printed': printed,
+                'decided': decided,
                 'ran': ran,
                 'result': result,
                 'next': nxt,

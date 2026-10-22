@@ -96,9 +96,20 @@ class AgentLiveTests(unittest.TestCase):
         trace = trace_of(done)
         report = validate_trace(trace, {'file_nonempty', 'path_is_dir'})
         self.assertTrue(report['valid'])
-        self.assertEqual(trace[1]['tool'], 'file_nonempty')
-        self.assertTrue(trace[2]['ok'])
+        self.assertEqual(trace[1]['type'], 'assistant')
+        self.assertEqual(trace[2]['tool'], 'file_nonempty')
+        self.assertTrue(trace[3]['ok'])
         self.assertEqual(trace[-1]['type'], 'session_end')
+        import json
+        import tempfile
+        from run_tau_gate import run_emitted
+        folder = Path(tempfile.mkdtemp())
+        trace_path = folder / 'trace.jsonl'
+        trace_path.write_text(''.join(json.dumps(event) + '\n' for event in trace))
+        verdict = run_emitted(trace_path, 20)
+        self.assertEqual(verdict['status'], 'PASS')
+        self.assertTrue(all(case['obtained'] == case['expected'] for case in verdict['cases']))
+        self.assertNotIn("g[0] = q[0]", Path(__file__).resolve().parents[1].joinpath('scripts', 'agent_step.py').read_text())
 
     def test_a_missing_file_does_not_print_stop(self):
         missing = Path('/tmp/tau-agent-missing-tool-a')
@@ -144,10 +155,10 @@ class AgentLiveTests(unittest.TestCase):
         self.assertFalse(done['halted'])
         trace = trace_of(done)
         self.assertEqual([event['type'] for event in trace], [
-            'session_start', 'tool_call', 'tool_result', 'tool_call', 'tool_result',
+            'session_start', 'assistant', 'tool_call', 'tool_result', 'tool_call', 'tool_result',
         ])
-        self.assertEqual(trace[3]['tool'], 'path_is_dir')
-        self.assertFalse(trace[2]['ok'])
+        self.assertEqual(trace[4]['tool'], 'path_is_dir')
+        self.assertFalse(trace[3]['ok'])
         self.assertFalse(validate_trace(trace, {'file_nonempty', 'path_is_dir'})['valid'])
 
     def test_a_forced_bit_against_a_missing_file_is_unsat(self):

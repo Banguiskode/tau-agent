@@ -29,11 +29,12 @@ Un 1 imprime l'arrêt, et l'autre outil n'est pas lancé. Un 0 n'imprime pas
 l'arrêt : la demande reste ouverte, et Tau imprime l'autre outil. L'hôte
 ne l'écrit pas. Il n'y a pas de troisième appel. L'indice d'après n'est
 pas une directive. Un fichier de texte lu par Tau n'est pas un bit : on
-ne convertit pas ces lettres. L'indice 3, celui d'après la fin du spec,
-n'est pas une directive.
+ne convertit pas ces lettres. L'indice d'après la fin du spec n'est pas
+une directive.
 L'hôte ne recopie plus les faits. L'observateur les écrit, Tau les lit.
-Le trajet ne contient que les outils imprimés. S'il n'y a pas d'arrêt,
-il n'y a pas de fin : le harness rejette ce trajet.
+Tau imprime la décision avant l'appel. L'hôte n'ajoute un assistant
+que si ce bit est allumé. La porte Tau accepte ce trajet. Sans cet
+arrêt, le harness le rejette encore.
 Un fichier vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
 Une sortie qui n'est pas un bit n'est pas convertie.
 
