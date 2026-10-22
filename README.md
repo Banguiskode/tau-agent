@@ -25,8 +25,13 @@ ou un appel malgré le résultat, est `unsat`.
 Le même pas tient dans un seul `r`. Tau imprime l'appel, puis attend.
 L'hôte n'envoie pas le bit. Il rapporte les faits, et la spec de l'outil
 imprimé le calcule.
-Un 1 imprime l'arrêt. Un 0 ne l'imprime pas, et ne relance pas l'appel.
-L'indice 2 du fichier n'est pas une directive. L'hôte rapporte deux faits bruts, existence et taille, et n'en fait pas
+Un 1 imprime l'arrêt, et l'autre outil n'est pas lancé. Un 0 n'imprime pas
+l'arrêt : la demande reste ouverte, et Tau imprime l'autre outil. L'hôte
+ne l'écrit pas. Il n'y a pas de troisième appel. L'indice d'après n'est
+pas une directive. Un fichier de texte lu par Tau n'est pas un bit : on
+ne convertit pas ces lettres. L'indice 3, celui d'après la fin du spec,
+n'est pas une directive.
+L'hôte rapporte deux faits bruts, existence et taille, et n'en fait pas
 la conjonction. C'est la spec de l'outil qui imprime le bit. Un fichier
 vide a l'existence, pas la taille : le bit est 0. Forcer 1 est `unsat`.
 Une sortie qui n'est pas un bit n'est pas convertie.

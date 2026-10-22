@@ -119,6 +119,33 @@ def _tau_bit(spec: Path, mapping: dict[str, Path], timeout: int = 20) -> int | N
     return _index(mapping['BIT'], 0)
 
 
+def _printed_tool(which: str, world_a: Path, world_b: Path, folder: Path) -> int | None:
+    bit = folder / f'bit_{which}.out'
+    if bit.exists():
+        bit.unlink()
+    if which == 'a':
+        facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_file.py')], world_a, 2)
+        if facts is None:
+            return None
+        exists = folder / 'exists.in'
+        size = folder / 'size.in'
+        exists.write_text(f'{facts[0]}\n')
+        size.write_text(f'{facts[1]}\n')
+        return _tau_bit(AGENT / 'tools' / 'file_nonempty.tau', {
+            'EXISTS': exists, 'SIZE': size, 'BIT': bit,
+        })
+    if which == 'b':
+        facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_dir.py')], world_b, 1)
+        if facts is None:
+            return None
+        directory = folder / 'dir.in'
+        directory.write_text(f'{facts[0]}\n')
+        return _tau_bit(AGENT / 'tools' / 'path_is_dir.tau', {
+            'DIR': directory, 'BIT': bit,
+        })
+    return None
+
+
 def _index(path: Path, index: int) -> int | None:
     if not path.exists():
         return None
@@ -146,8 +173,8 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             'TOOL_B': folder / 'tool_b.out',
             'STOP': folder / 'stop.out',
         }
-        paths['REQUEST'].write_text(f'{request}\n0\n')
-        paths['NAMED'].write_text(f'{named}\n0\n')
+        paths['REQUEST'].write_text('1\n1\n0\n' if request else '0\n0\n0\n')
+        paths['NAMED'].write_text(f'{named}\n0\n0\n')
         script = law
         for key, path in paths.items():
             script = script.replace(key, str(path))
@@ -203,28 +230,10 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             answer = 0
             if printed['call'] == 1 and printed['tool_a'] == 1 and printed['tool_b'] == 0:
                 ran = 'a'
-                facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_file.py')], world_a, 2)
-                if facts is None:
-                    return empty
-                exists = folder / 'exists.in'
-                size = folder / 'size.in'
-                bit = folder / 'bit.out'
-                exists.write_text(f'{facts[0]}\n')
-                size.write_text(f'{facts[1]}\n')
-                result = _tau_bit(AGENT / 'tools' / 'file_nonempty.tau', {
-                    'EXISTS': exists, 'SIZE': size, 'BIT': bit,
-                })
+                result = _printed_tool('a', world_a, world_b, folder)
             elif printed['call'] == 1 and printed['tool_b'] == 1 and printed['tool_a'] == 0:
                 ran = 'b'
-                facts = _observed_lines(['python3', str(AGENT / 'tools' / 'observe_dir.py')], world_b, 1)
-                if facts is None:
-                    return empty
-                directory = folder / 'dir.in'
-                bit = folder / 'bit.out'
-                directory.write_text(f'{facts[0]}\n')
-                result = _tau_bit(AGENT / 'tools' / 'path_is_dir.tau', {
-                    'DIR': directory, 'BIT': bit,
-                })
+                result = _printed_tool('b', world_a, world_b, folder)
             if ran is not None:
                 if result is None:
                     return empty
@@ -245,15 +254,50 @@ def perform(request: int, named: int, world_a: Path, world_b: Path, timeout: int
             }
             if any(value is None for value in nxt.values()):
                 return empty
+            followed = None
+            followed_result = None
+            second_answer = 0
+            if nxt['call'] == 1 and nxt['tool_a'] == 1 and nxt['tool_b'] == 0:
+                followed = 'a'
+                followed_result = _printed_tool('a', world_a, world_b, folder)
+            elif nxt['call'] == 1 and nxt['tool_b'] == 1 and nxt['tool_a'] == 0:
+                followed = 'b'
+                followed_result = _printed_tool('b', world_a, world_b, folder)
+            if followed is not None:
+                if followed_result is None:
+                    return empty
+                second_answer = followed_result
+            proc.stdin.write(f'{second_answer}\n')
+            proc.stdin.flush()
+            while time.time() < deadline and not seen('Execution step: 3'):
+                if seen('unsat') or seen('Syntax Error'):
+                    return empty
+                time.sleep(0.05)
+            if not seen('Execution step: 3'):
+                return empty
+            after = {
+                'call': _index(paths['CALL'], 2),
+                'tool_a': _index(paths['TOOL_A'], 2),
+                'tool_b': _index(paths['TOOL_B'], 2),
+                'stop': _index(paths['STOP'], 2),
+            }
+            if any(value is None for value in after.values()):
+                return empty
             proc.stdin.write('q\nquit\n')
             proc.stdin.flush()
             proc.wait(timeout=5)
+            halted = nxt['stop'] == 1 and nxt['call'] == 0
+            if followed is not None:
+                halted = after['stop'] == 1 and after['call'] == 0
             return {
                 'printed': printed,
                 'ran': ran,
                 'result': result,
                 'next': nxt,
-                'halted': nxt['stop'] == 1 and nxt['call'] == 0,
+                'followed': followed,
+                'followed_result': followed_result,
+                'after': after,
+                'halted': halted,
             }
         finally:
             if proc.poll() is None:
