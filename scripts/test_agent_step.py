@@ -125,6 +125,15 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(done['after']['stop'], 0)
         self.assertEqual(done['after']['call'], 0)
         self.assertFalse(done['halted'])
+        import json
+        import tempfile
+        from run_tau_gate import run_emitted
+        trace = trace_of(done)
+        trace_path = Path(tempfile.mkdtemp()) / 'trace.jsonl'
+        trace_path.write_text(''.join(json.dumps(event) + '\n' for event in trace))
+        verdict = run_emitted(trace_path, 20)
+        self.assertEqual(verdict['status'], 'NO_END')
+        self.assertEqual(verdict['cases'], [])
 
     def test_the_other_tool_is_not_run(self):
         folder = Path(self._worlds('1', which='b'))
@@ -162,6 +171,25 @@ class AgentLiveTests(unittest.TestCase):
         self.assertEqual(trace[4]['tool'], 'path_is_dir')
         self.assertFalse(trace[3]['ok'])
         self.assertFalse(validate_trace(trace, {'file_nonempty', 'path_is_dir'})['valid'])
+
+    def test_the_other_tool_returning_one_prints_stop(self):
+        import json
+        import tempfile
+        from run_tau_gate import run_emitted
+        folder = Path(tempfile.mkdtemp())
+        (folder / 'a').write_text('')
+        done = perform(1, 0, folder / 'a', folder)
+        self.assertEqual(done['followed'], 'b')
+        self.assertEqual(done['followed_result'], 1)
+        self.assertEqual(done['after']['stop'], 1)
+        self.assertEqual(done['after']['call'], 0)
+        self.assertTrue(done['halted'])
+        trace = trace_of(done)
+        self.assertEqual(trace[-1]['type'], 'session_end')
+        trace_path = folder / 'trace.jsonl'
+        trace_path.write_text(''.join(json.dumps(event) + '\n' for event in trace))
+        verdict = run_emitted(trace_path, 20)
+        self.assertEqual(verdict['status'], 'PASS')
 
     def test_a_forced_bit_against_a_missing_file_is_unsat(self):
         self.assertIn('unsat', gate('tools/gate_nonempty.tau'))

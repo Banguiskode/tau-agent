@@ -136,6 +136,19 @@ class EmitTauExecutionTests(unittest.TestCase):
         kernel = next(case for case in report['cases'] if case['case'] == 'kernel')
         self.assertEqual(kernel['obtained'], 'UNSAT')
 
+    def test_a_trace_without_an_end_is_not_a_kernel(self):
+        events = [
+            {'type': 'session_start'},
+            {'type': 'assistant'},
+            {'type': 'tool_call', 'tool': 'file_nonempty', 'call_id': 'c0'},
+            {'type': 'tool_result', 'call_id': 'c0', 'ok': False},
+            {'type': 'tool_call', 'tool': 'path_is_dir', 'call_id': 'c1'},
+            {'type': 'tool_result', 'call_id': 'c1', 'ok': False},
+        ]
+        with self.assertRaises(ValueError) as raised:
+            emit_cases(events)
+        self.assertEqual(str(raised.exception), 'no end in trace')
+
 
 if __name__ == '__main__':
     unittest.main()

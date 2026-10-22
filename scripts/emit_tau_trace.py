@@ -65,7 +65,10 @@ def policy_links(events: list[dict]) -> list[str]:
 
 def probe_pair(links: list[str]) -> tuple[str, str, str]:
     """Retourne (lien, fait antécédent, négation du conséquent)."""
-    link = next(item for item in links if item.startswith('(done['))
+    done = [item for item in links if item.startswith('(done[')]
+    if not done:
+        raise ValueError('no end in trace')
+    link = done[0]
     body = link[1:-1]
     antecedent, consequent = body.split(' -> ')
     stream, index = consequent.split('[')

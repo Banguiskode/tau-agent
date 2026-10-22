@@ -30,7 +30,11 @@ def run(path: Path, timeout: int) -> dict:
 
 def run_emitted(trace: Path, timeout: int) -> dict:
     events = [json.loads(line) for line in trace.read_text().splitlines() if line.strip()]
-    emitted = emit_cases(events)
+    try:
+        emitted = emit_cases(events)
+    except ValueError as exc:
+        return {'status': 'NO_END', 'error': str(exc), 'cases': [],
+                'source': 'trace', 'trace': str(trace)}
     cases = []
     with tempfile.TemporaryDirectory(prefix='tau-trace-') as directory:
         folder = Path(directory)
